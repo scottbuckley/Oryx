@@ -1,0 +1,5 @@
+# ErrorDocument 404 /phpsub/sub.php
+RewriteEngine On
+RewriteCond %{REQUEST_URI} ^/phpsub/sub\.php.*
+RewriteRule ^(.*)$ - [L]
+RewriteRule ^(.*)$ /phpsub/sub.php?o_url=%{REQUEST_URI} [L,QSA]
