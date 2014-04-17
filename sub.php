@@ -18,6 +18,7 @@ $GLOBALS['ARTICLES'] = array('The');
 $GLOBALS['IGNOREDFOLDERS'] = array('..', '.');
 $GLOBALS['ACCEPTEDFILETYPES'] = array('.mp3');
 $GLOBALS['SCAN_COUNTPERREFRESH'] = 75;
+$GLOBALS['URL_FULL'] = '';
 
 
 #     #
@@ -28,7 +29,8 @@ $GLOBALS['SCAN_COUNTPERREFRESH'] = 75;
 #  #  # #      #    #
  ## ##  ###### #####
 
-function getHome() { ?>
+// the root page for phpsub's HTML frontend
+function webHome() { ?>
 <html>
     <head>
         <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.js"></script>
@@ -97,6 +99,7 @@ function getHome() { ?>
             $(document).ready(function()            { hashResponseMaybe(); });
             $(document).ready(function()            { loadIndexes();       });
             $(window).bind('hashchange', function() { hashResponse();      });
+
             _.mixin({
                 forEachOrOnce: function(obj, iterator, context) {
                     if (_.isArray(obj))
@@ -112,20 +115,13 @@ function getHome() { ?>
                 } 
             });
 
-
-            function loadDirectoryStupid(dirId) {
-                $(".centrePanel").load("rest/getMusicDirectory.view?id="+dirId+"&f=json");
-            }
-
             function loadDirectory(dirId) {
                 var centrePanel = $(".centrePanel");
                 centrePanel.empty();
                 centrePanel.append("requesting...");
 
-
-
                 // get and process a json directory listing
-                $.getJSON("rest/getMusicDirectory.view?id="+dirId+"&f=json", function(json) {
+                $.getJSON("?/rest/getMusicDirectory.view?id="+dirId+"&f=json", function(json) {
                     centrePanel.append("done.<br/>");
                     var children = json["subsonic-response"]["directory"]["child"];
 
@@ -166,7 +162,10 @@ function getHome() { ?>
 
             function loadIndexes() {
                 // get and process a json Indexes list
-                $.getJSON("rest/getIndexes.view?f=json", function(json) {
+                $(".leftPanel").load("?/web/indexes");
+                return;
+
+                $.getJSON("?/rest/getIndexes.view?f=json", function(json) {
 
                     var indexes = json["subsonic-response"]["indexes"]["index"];
                     var leftPanel = $(".leftPanel");
@@ -267,13 +266,22 @@ function getHome() { ?>
 </html>
 <?php }
 
-        // <div class="globalWrapper">
-        //     <div class="leftPanelWrapper">
-        //         <div class="leftPanel"></div>
-        //         <div class="centrePanel">meow</div>
-        //     </div>
-        //     
-        // </div>
+function webIndexes() { 
+    $indexes = splitIntoSubarrays(dbGetIndexes());
+
+    foreach(array_keys($indexes) as $index) {
+        echo "\n<div class=\"indexGroup\"><div class=\"indexGroupHeader\">$index</div>";
+
+        // add artists to index
+        foreach($indexes[$index] as $artist) {
+            $id   = $artist['id'];
+            $name = $artist['name'];
+
+            echo "\n<div class=\"indexItem\"><a class=\"indexItemAnchor\" href=\"#/$id\">$name</a></div>";
+        }
+        echo "\n</div>";
+    }
+}
 
 
  #####
@@ -461,21 +469,25 @@ class ResponseObject {
 
 function getPageMap() {
     return array
-        ( '/rest/getMusicDirectory.view' => 'getMusicDirectory'
-        , '/rest/getMusicFolders.view' => 'getMusicFolders'
-        , '/rest/getRandomSongs.view' => 'getRandomSongs'
-        , '/rest/getCoverArt.view' => 'getCoverArt'
-        , '/rest/getStarred.view' => 'getStarredSongs'
-        , '/rest/getIndexes.view' => 'getIndexes'
-        , '/rest/getLicense.view' => 'getLicense'
-        , '/rest/stream.view' => 'stream'
-        , '/rest/ping.view' => 'ping'
-        , '/web/createdb' => 'createDB'
-        , '/web/scan2' => 'scanTracks_First'
-        , '/web/scan' => 'scanEverything'
-        , '/web/test' => 'test'
-        , '/web/getDir' => 'htmlGetDir'
-        , '/' => 'getHome'
+          // URIs for the RESTful API
+        ( '/rest/getMusicDirectory.view'  => 'getMusicDirectory'
+        , '/rest/getMusicFolders.view'    => 'getMusicFolders'
+        , '/rest/getRandomSongs.view'     => 'getRandomSongs'
+        , '/rest/getCoverArt.view'        => 'getCoverArt'
+        , '/rest/getStarred.view'         => 'getStarredSongs'
+        , '/rest/getIndexes.view'         => 'getIndexes'
+        , '/rest/getLicense.view'         => 'getLicense'
+        , '/rest/stream.view'             => 'stream'
+        , '/rest/ping.view'               => 'ping'
+
+        // URIs for the HTML frontend
+        , '/web/createdb'  => 'createDB'
+        , '/web/scan2'     => 'scanTracks_First'
+        , '/web/scan'      => 'scanEverything'
+        , '/web/test'      => 'test'
+        , '/web/getDir'    => 'htmlGetDir'
+        , '/home'          => 'webHome'
+        , '/web/indexes'   => 'webIndexes'
         );
 }
 
@@ -631,15 +643,35 @@ function test() {
 #     # #        #   #    #
 #     # ######   #   #    #
 
+/* because pspsub is one file, and we need to deal with lots of different
+ * URLs for the API, we define the root path (for apis) to be [foldername]/?/
+ * this allows this one PHP file to process every request.
+ */
 function processURI() {
-    $requestUriInfo = parse_url($_SERVER['REQUEST_URI']);
-    $requestPath = $requestUriInfo['path'];
+    $rawPath = $_SERVER['REQUEST_URI'];
 
-    if ($func = getByMatch($requestPath, getPageMap())) {
-        $func();
+    $x = strpos($rawPath, '/?/'); 
+    if ($x !== false) {
+        $relPath = substr($rawPath, $x+2);
+        $pathInfo = parse_url($relPath);
+
+        $requestPath = $pathInfo['path'];
+        $requestQuery = $pathInfo['query'];
+        parse_str($requestQuery, $a);
+        $_REQUEST = array_merge($_REQUEST, $a);
+
+        if ($func = getByMatch($requestPath, getPageMap())) {
+            $func();
+        } else {
+            invalidPage();
+        }
     } else {
-        invalidPage();
+        // if this is not a /?/ path, we want the homepage for the HTML version
+        webHome();
     }
+        
+
+
     
 }
 function getAPIFormatType() {
@@ -1250,7 +1282,7 @@ function nonzero($input, $default) {
 }
 function getByMatch($keyLong, $array) {
     foreach($array as $key => $value) {
-        if ($keyLong === $GLOBALS["ABS_PATH"].$key)
+        if ($keyLong === $key)
             return $value;
     }
     return False;
