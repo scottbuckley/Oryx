@@ -75,6 +75,10 @@ function htmlBody() { ?>
                     </div>
                 </div>
             </div>
+            <!-- <tr> -->
+                <!-- <td colspan="3"><div style="border:1px solid red;">all the stuff!!!!</div></td> -->
+                <!-- <td colspan="3"><div style="border:1px solid blue;">all the stuff!!!!</div></td> -->
+            <!-- </tr> -->
             <div class="footerWrapper">
                 <div class="footer">
                     <a href="?/signout">Sign Out</a>
@@ -123,6 +127,7 @@ function htmlStyle() { ?>
             body {
                 font-family: 'Roboto', sans-serif;
                 font-weight: 100;
+                padding: 5px;
             }
             table {
                 font-family:  inherit;
@@ -133,9 +138,9 @@ function htmlStyle() { ?>
             }
             div.globalWrapper {
                 display: table;
-                padding: 5px;
                 width: 100%;
                 height: 100%;
+                table-layout: fixed;
             }
             div.innerWrapper {
                 display: table-row;
@@ -154,7 +159,6 @@ function htmlStyle() { ?>
                 display: table-cell;
                 height: 35px;
                 position: absolute;
-                bottom: 0px;
                 left:   0px;
                 right:  0px;
                 margin: 5px;
@@ -163,26 +167,29 @@ function htmlStyle() { ?>
             }
             div.leftPanelWrapper {
                 display: table-cell;
-                background-color: #EEE;
+                vertical-align: top;
                 width: 200px;
+                overflow: hidden;
+                background-color: #EEE;
+            }
+            div.leftPanel {
+                position: static;
+                overflow: auto;
+                height: 100%;
             }
             div.centrePanelWrapper {
                 display: table-cell;
+                vertical-align: top;
             }
             div.rightPanelWrapper {
-                display: table-cell;
                 background-color: #EEE;
                 width: 300px;
-            }
-            div.leftPanel {
-                overflow: scroll;
+                display: table-cell;
             }
             div.centrePanel {
                 overflow:scroll;
                 height:100%;
                 padding: 0px 10px;
-                position: relative;
-                top: -2px;
             }
             div.rightPanel {
                 padding: 5px;
@@ -249,6 +256,7 @@ function htmlStyle() { ?>
                 background-color:  #EEE;
                 padding-top:       40px;
                 padding-bottom:    40px;
+                border-radius:     5px;
             }
             .form-signin {
                 max-width:  400px;
@@ -482,6 +490,9 @@ function webIndexes() {
             $id   =   $artist['id'];
             $name = §($artist['name']);
 
+            »("<div class='indexItem'><a class='indexItemAnchor' href='#/$id'>$name</a></div>");
+            »("<div class='indexItem'><a class='indexItemAnchor' href='#/$id'>$name</a></div>");
+            »("<div class='indexItem'><a class='indexItemAnchor' href='#/$id'>$name</a></div>");
             »("<div class='indexItem'><a class='indexItemAnchor' href='#/$id'>$name</a></div>");
         }
         »("</div>");
