@@ -8,16 +8,26 @@
  #####   ####  #    # #      #  ####   ####  #    # #    #   #   #  ####  #    #
 
 $OPT_SQL_FILENAME = 'sub.db';
-$OPT_MUSICDIR = '/home2/buckly/nonpublic/submusic/'; // with trailing slash !IMPORTANT!
+$OPT_MUSICDIR = '/home2/buckly/nonpublic/submusic2/'; // with trailing slash !IMPORTANT!
 $OPT_LETTERGROUPS = array('A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','XYZ', '#');
 $OPT_NONALPHALETTERGROUP = '#';
 $OPT_ARTICLES = array('The');
-$OPT_IGNOREDFOLDERS = array('..', '.');
-$OPT_ACCEPTED_FILE_TYPES = array('.mp3');
-$OPT_SCAN_COUNTPERREFRESH = 75;
-define('IMG_ICON', 'image/gif;base64,R0lGODlhDAAMAJECAAAAAJaWlv///wAAACH5BAEAAAIALAAAAAAMAAwAAAIZlI+pGe2NgpKHxssOAGobn4AgInKhuaRpAQA7');
+
+// disable this if you want phpsub to require no authentication. Not recommended if your server is public-facing.
+define('REQUIRE_AUTH', false);
+
+// Allowing phpsub to serve a partial file is required for being able to skip through a track (past the buffer).
+// Also Safari won't even show playing progress or time without partial file service. Turn this off, however, if
+// you want to decrease the load on your server, because partial file service uses more resources than otherwise.
+define('STREAM_ALLOW_PARTIAL', true);
+
+
+/**** The following settings should only be modified if you know what you're doing. ****/
 define('TIME_2033', 2000000000);
-define('REQUIRE_AUTH', true);
+$OPT_SCAN_COUNTPERREFRESH = 75;
+$OPT_ACCEPTED_FILE_TYPES = array('.mp3');
+$OPT_IGNOREDFOLDERS = array('..', '.');
+define('IMG_ICON', 'image/gif;base64,R0lGODlhDAAMAJECAAAAAJaWlv///wAAACH5BAEAAAIALAAAAAAMAAwAAAIZlI+pGe2NgpKHxssOAGobn4AgInKhuaRpAQA7');
 
 #     # ####### #     # #
 #     #    #    ##   ## #
@@ -57,32 +67,24 @@ function webHome($style='htmlStyle', $script='htmlScript', $body='htmlBody') { ?
 <?php }
 
 function htmlBody() { ?>
-        <div class="globalWrapper">
-            <div class="innerWrapper">
-                <div class="leftPanelWrapper">
-                    <div class="leftPanel"></div>
-                </div>
-                <div class="centrePanelWrapper">
-                    <div class="centrePanel">&nbsp;</div>
-                </div>
-                <div class="rightPanelWrapper">
-                    <div class="rightPanel">
-                        <audio id="htmlAudio" controls autoplay></audio>
-                        <table id="trackListTable"></table>
-                        <a href="javascript:prevTrack();">prev</a>
-                        <a href="javascript:nextTrack();">next</a>
-                        <a href="javascript:startTrack();">play</a>
-                    </div>
-                </div>
+        <div class="leftPanelWrapper">
+            <div class="leftPanel"></div>
+        </div>
+        <div class="centrePanelWrapper">
+            <div class="centrePanel">&nbsp;</div>
+        </div>
+        <div class="rightPanelWrapper">
+            <div class="rightPanel">
+                <audio id="htmlAudio" controls autoplay></audio>
+                <table id="trackListTable"></table>
+                <a href="javascript:prevTrack();">prev</a>
+                <a href="javascript:nextTrack();">next</a>
+                <a href="javascript:startTrack();">play</a>
             </div>
-            <!-- <tr> -->
-                <!-- <td colspan="3"><div style="border:1px solid red;">all the stuff!!!!</div></td> -->
-                <!-- <td colspan="3"><div style="border:1px solid blue;">all the stuff!!!!</div></td> -->
-            <!-- </tr> -->
-            <div class="footerWrapper">
-                <div class="footer">
-                    <a href="?/signout">Sign Out</a>
-                </div>
+        </div>
+        <div class="footerWrapper">
+            <div class="footer">
+                <a href="?/signout">Sign Out</a>
             </div>
         </div>
 <?php }
@@ -127,6 +129,66 @@ function htmlStyle() { ?>
             body {
                 font-family: 'Roboto', sans-serif;
                 font-weight: 100;
+            }
+            audio {
+                width: 100%;
+                display: block;
+            }
+            .leftPanelWrapper {
+                position: absolute;
+                left: 0px;
+                top: 0px;
+                bottom: 40px;
+                width: 200px;
+                overflow-y: scroll;
+
+                background-color: #EEE;
+                border-bottom-right-radius: 5px;
+                padding: 5px;
+                border-right: 1px solid #DDD;
+                border-bottom: 1px solid #DDD;
+            }
+            .leftPanel {
+            }
+            .centrePanelWrapper {
+                position: absolute;
+                top: 0px;
+                left: 200px;
+                right: 300px;
+                bottom: 40px;
+
+                padding: 5px;
+            }
+            .centrePanel {
+            }
+            .rightPanelWrapper {
+                position: absolute;
+                top: 0px;
+                bottom: 40px;
+                width: 300px;
+                right: 0px;
+
+                background-color: #EEE;
+                border-bottom-left-radius: 5px;
+                padding: 5px;
+                border-left: 1px solid #DDD;
+                border-bottom: 1px solid #DDD;
+            }
+            .rightPanel {
+            }
+            .footerWrapper {
+                position: absolute;
+                left: 0px;
+                right: 0px;
+                bottom: 0px;
+                height: 35px;
+
+                border-top: 1px solid #DDD;
+            }
+            .footer {
+                background: #EEE;
+                width: 100%;
+                height: 100%;
                 padding: 5px;
             }
             table {
@@ -136,64 +198,6 @@ function htmlStyle() { ?>
                 font-variant: inherit;
                 font-weight:  inherit;
             }
-            div.globalWrapper {
-                display: table;
-                width: 100%;
-                height: 100%;
-                table-layout: fixed;
-            }
-            div.innerWrapper {
-                display: table-row;
-            }
-            div.footerWrapper {
-                display: table-row;
-                height: 40px;
-            }
-            
-            div.footer, div.leftPanelWrapper, div.rightPanelWrapper, h1 {
-                border-radius: 5px;
-                border: 1px solid #DDD;
-            }
-
-            div.footer {
-                display: table-cell;
-                height: 35px;
-                position: absolute;
-                left:   0px;
-                right:  0px;
-                margin: 5px;
-                background: #EEE;
-                padding: 5px;
-            }
-            div.leftPanelWrapper {
-                display: table-cell;
-                vertical-align: top;
-                width: 200px;
-                overflow: hidden;
-                background-color: #EEE;
-            }
-            div.leftPanel {
-                position: static;
-                overflow: auto;
-                height: 100%;
-            }
-            div.centrePanelWrapper {
-                display: table-cell;
-                vertical-align: top;
-            }
-            div.rightPanelWrapper {
-                background-color: #EEE;
-                width: 300px;
-                display: table-cell;
-            }
-            div.centrePanel {
-                overflow:scroll;
-                height:100%;
-                padding: 0px 10px;
-            }
-            div.rightPanel {
-                padding: 5px;
-            }
             div.indexGroup {
 
             }
@@ -201,6 +205,7 @@ function htmlStyle() { ?>
                 font-weight: 700;
                 background-color: #BBB;
                 padding-left: 8px;
+                border-radius: 5px;
             }
             div.indexItem {
                 font-size: 10pt;
@@ -228,6 +233,7 @@ function htmlStyle() { ?>
                 margin: 0;
                 border-radius: 5px;
                 overflow: hidden;
+                border: 1px solid #DDD;
             }
             #titleWrapper {
                 display:table-row;
@@ -491,9 +497,6 @@ function webIndexes() {
             $name = §($artist['name']);
 
             »("<div class='indexItem'><a class='indexItemAnchor' href='#/$id'>$name</a></div>");
-            »("<div class='indexItem'><a class='indexItemAnchor' href='#/$id'>$name</a></div>");
-            »("<div class='indexItem'><a class='indexItemAnchor' href='#/$id'>$name</a></div>");
-            »("<div class='indexItem'><a class='indexItemAnchor' href='#/$id'>$name</a></div>");
         }
         »("</div>");
     }
@@ -602,13 +605,15 @@ function checkAuth() {
     $post_un = ¿($_POST, 'frmUsr');
     $post_pw = ¿($_POST, 'frmPwd');
 
-    if ($post_un && $post_pw)
+    if ($post_un && $post_pw) {
         if(dbCheckUserPass($post_un, $post_pw)) {
             makeAuthCookie($post_un, $post_pw);
             return true;
         }
-        else
+        else {
             $GLOBALS['loginPostTried'] = true;
+        }
+    }
 
 
     // check GET
@@ -616,7 +621,7 @@ function checkAuth() {
     $get_pw = ¿($_REQUEST, 'p');
 
     if ($get_un && $get_pw)
-        if(dbCheckUserPass($cookie_un, unhex($cookie_pw)))
+        if(dbCheckUserPass($get_un, unhex($get_pw)))
             return true;
 
     // fail
@@ -987,7 +992,7 @@ function scanTracks_First() {
     echo '
 <script language="javascript" type="text/javascript">
     setTimeout(function() {
-        //window.location.href=window.location.href;
+        window.location.href=window.location.href;
     }, 800);
 </script>
 ';
@@ -1092,10 +1097,21 @@ function getAPIFormatType() {
 }
 
 function streamMP3($id) {
+    // get filename
     $fname = dbGetMP3filename($id);
-    header("Content-Length: ".filesize($fname));
-    fpassthru(fopen($fname, 'rb'));
-    exit;
+
+    // stream the file.
+    if (STREAM_ALLOW_PARTIAL) {
+        // if (browser_info()['safari'])
+            // serveFilePartial($fname, null, 'audio/mpeg');
+        // else
+            streamFile($fname, 'audio/mpeg');
+    } else {
+        $byteLength = filesize($fname);
+        header("Content-Length: $byteLength");
+        fpassthru(fopen($fname, 'rb'));
+        exit;
+    }
 }
 
 
@@ -1485,23 +1501,22 @@ function dbCreateTables() {
             name             TEXT NOT NULL,
             dir              TEXT
         );'); echo "tblLibraries created.<br/>";
-    $db->exec('
-        CREATE TABLE IF NOT EXISTS tblIndexes (
-            id               INTEGER PRIMARY KEY AUTOINCREMENT,
-            name             TEXT NOT NULL UNIQUE,
-            letterGroup      TEXT
-        );'); echo "tblIndexes created.<br/>";
+    // $db->exec('
+    //     CREATE TABLE IF NOT EXISTS tblIndexes (
+    //         id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    //         name             TEXT NOT NULL UNIQUE,
+    //         letterGroup      TEXT
+    //     );'); echo "tblIndexes created.<br/>";
     $db->exec('
         CREATE TABLE IF NOT EXISTS tblDirectories (
-            id               INTEGER PRIMARY KEY AUTOINCREMENT,
-            name             TEXT NOT NULL,
-            parentid         INTEGER,
-            parentname       TEXT NOT NULL,
-            fullpath         TEXT NOT NULL UNIQUE
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            isindex      INTEGER DEFAULT 0,
+            lettergroup  TEXT,
+            name         TEXT NOT NULL,
+            parentid     INTEGER,
+            parentname   TEXT NOT NULL,
+            fullpath     TEXT NOT NULL UNIQUE
         );
-
-        DELETE FROM SQLITE_SEQUENCE WHERE name="tblDirectories";
-        REPLACE INTO SQLITE_SEQUENCE (seq, name) VALUES (999999, "tblDirectories");
 
     '); echo "tblDirectories created.<br/>";
     $db->exec('
@@ -1557,8 +1572,23 @@ function dbWriteIndexes($indexes) {
     $db->beginTransaction();
     foreach($indexes as $letter => $folders) {
         foreach($folders as $folder) {
-            $q=$db->prepare('INSERT INTO tblIndexes (letterGroup, name) VALUES (?, ?);');
-            $q->execute(array($letter, $folder));
+            $q=$db->prepare('INSERT INTO tblDirectories (
+                      lettergroup
+                    , name
+                    , isindex
+                    , parentname 
+                    , fullpath
+                ) VALUES (
+                      :lettergroup
+                    , :name
+                    , 1
+                    , :name
+                    , :name
+                );');
+            $q->execute(array(
+                  ':lettergroup' => $letter
+                , ':name'        => $folder
+            ));
         }
     }
     $db->commit();
@@ -1566,7 +1596,7 @@ function dbWriteIndexes($indexes) {
 
 function dbReadIndexes() {
     $db = dbConnect();
-    $data = $db->query($sql = 'SELECT id, name FROM tblIndexes;');
+    $data = $db->query($sql = 'SELECT id, name FROM tblDirectories WHERE isindex=1;');
     $result = array();
     foreach ($data as $row) {
         $id = $row['id'];
@@ -1585,7 +1615,7 @@ function dbCreateDirectory($childName, $parentId, $parentName, $childPath) {
 
 function dbDeleteIndex($indexId) {
     $db = dbConnect();
-    $q=$db->prepare('DELETE FROM tblIndexes WHERE id = ?;');
+    $q=$db->prepare('DELETE FROM tblDirectories WHERE id = ?;');
     $q->execute(array($indexId));
 }
 
@@ -1656,7 +1686,7 @@ function dbUpdateTrackInfo($fullpath, $data) {
 
 function dbGetIndexes() {
     $db = dbConnect();
-    $q=$db->query('SELECT id, name, letterGroup FROM tblIndexes;');
+    $q=$db->query('SELECT id, name, lettergroup FROM tblDirectories WHERE isindex=1;');
     $data = $q->fetchAll();
     return $data;
 }
@@ -1703,7 +1733,7 @@ function dbGetMP3filename($id) {
 
 function dbGetFolderPath($id) {
     $db = dbConnect();
-    $q=$db->prepare('SELECT fullpath FROM tblDirectories WHERE id=?');
+    $q=$db->prepare('SELECT fullpath FROM tblDirectories WHERE id=? AND isindex=0');
     $q->execute(array($id));
     $data = $q->fetchAll(PDO::FETCH_COLUMN, 0);
     return $data[0];
@@ -1827,7 +1857,7 @@ function rutime($ru, $rus, $index) {
 function splitIntoSubarrays($indexes) {
     $result = array();
     foreach($indexes as $index) {
-        $letterGroup = $index['letterGroup'];
+        $letterGroup = $index['lettergroup'];
         if (!array_key_exists($letterGroup, $result)) {
             $result[$letterGroup] = array();
         }
@@ -1932,6 +1962,236 @@ function ¿D($default, $arr) {
 
 processURI();
 
+
+
+
+
+###
+ #  #    # #####   ####  #####  #####  ####
+ #  ##  ## #    # #    # #    #   #   #
+ #  # ## # #    # #    # #    #   #    ####
+ #  #    # #####  #    # #####    #        #
+ #  #    # #      #    # #   #    #   #    #
+### #    # #       ####  #    #   #    ####
+
+// taken from http://stackoverflow.com/questions/11340276/make-mp3-seekable-php (modified)
+// this seems to work with everything except safari
+/**
+ * Stream-able file handler
+ *
+ * @param String $file_location
+ * @param Header|String $content_type
+ * @return content
+ */
+function streamFile($file, $content_type = 'application/octet-stream') {
+    @error_reporting(0);
+
+    // Make sure the files exists, otherwise we are wasting our time
+    if (!file_exists($file)) {
+        header("HTTP/1.1 404 Not Found");
+        exit;
+    }
+
+    // Get file size
+    $filesize = sprintf("%u", filesize($file));
+
+    // Handle 'Range' header
+    if(isset($_SERVER['HTTP_RANGE'])){
+        $range = $_SERVER['HTTP_RANGE'];
+    }elseif($apache = apache_request_headers()){
+        $headers = array();
+        foreach ($apache as $header => $val){
+            $headers[strtolower($header)] = $val;
+        }
+        if(isset($headers['range'])){
+            $range = $headers['range'];
+        }
+        else $range = FALSE;
+    } else $range = FALSE;
+
+    //Is range
+    if($range){
+        $partial = true;
+        list($param, $range) = explode('=',$range);
+        // Bad request - range unit is not 'bytes'
+        if(strtolower(trim($param)) != 'bytes'){ 
+            header("HTTP/1.1 400 Invalid Request");
+            exit;
+        }
+        // Get range values
+        $range = explode(',',$range);
+        $range = explode('-',$range[0]); 
+        // Deal with range values
+        if ($range[0] === ''){
+            $end = $filesize - 1;
+            $start = $end - intval($range[0]);
+        } else if ($range[1] === '') {
+            $start = intval($range[0]);
+            $end = $filesize - 1;
+        }else{ 
+            // Both numbers present, return specific range
+            $start = intval($range[0]);
+            $end = intval($range[1]);
+            if ($end >= $filesize || (!$start && (!$end || $end == ($filesize - 1))))
+                $partial = false; // Invalid range/whole file specified, return whole file
+        }
+        $length = $end - $start + 1;
+    } else  {
+        // No range requested
+        $partial = false; 
+    }
+
+    // content-length isn't always filesize (scott)
+    $contentLength = $partial ? $length : $filesize;
+
+    // Send standard headers
+    header("Content-Type: $content_type");
+    header("Content-Length: $contentLength");
+    header('Accept-Ranges: bytes');
+
+    // send extra headers for range handling...
+    if ($partial) {
+        header('HTTP/1.1 206 Partial Content');
+        header("Content-Range: bytes $start-$end/$filesize");
+        if (!$fp = fopen($file, 'rb')) {
+            header("HTTP/1.1 500 Internal Server Error");
+            exit;
+        }
+        if ($start) fseek($fp,$start);
+        while($length){
+            set_time_limit(0);
+            $read = ($length > 8192) ? 8192 : $length;
+            $length -= $read;
+            print(fread($fp,$read));
+        }
+        fclose($fp);
+    }
+    //just send the whole file
+    else {
+        readfile($file);
+    }
+    exit;
+}
+
+
+
+
+
+// taken from http://www.php.net/manual/en/function.get-browser.php (comments) (modified)
+// not currently used
+function browser_info($agent=null) {
+  // Declare known browsers to look for
+  $known = array('chrome', 'msie', 'firefox', 'safari', 'opera', 'netscape',
+    'konqueror');
+
+  // Clean up agent and build regex that matches phrases for known browsers
+  // (e.g. "Firefox/2.0" or "MSIE 6.0" (This only matches the major and minor
+  // version numbers.  E.g. "2.0.0.6" is parsed as simply "2.0"
+  $agent = strtolower($agent ? $agent : $_SERVER['HTTP_USER_AGENT']);
+  $pattern = '#(?<browser>' . join('|', $known) .
+    ')[/ ]+(?<version>[0-9]+(?:\.[0-9]+)?)#';
+
+  // Find all phrases (or return empty array if none found)
+  if (!preg_match_all($pattern, $agent, $matches)) return array();
+
+  // Since some UAs have more than one phrase (e.g Firefox has a Gecko phrase,
+  // Opera 7,8 have a MSIE phrase), use the last one found (the right-most one
+  // in the UA).  That's usually the most correct.
+  $i = count($matches['browser'])-1;
+  $i = 0; // I changed this becaose Chrome lists Safari last.
+  return array($matches['browser'][$i] => $matches['version'][$i]);
+}
+
+// taken from https://github.com/pomle/php-serveFilePartial (modified)
+// this seems to work with safari (only)
+// not currently used
+function serveFilePartial($fileName, $fileTitle = null, $contentType = 'application/octet-stream')
+{
+    if( !file_exists($fileName) )
+        throw New \Exception(sprintf('File not found: %s', $fileName));
+
+    if( !is_readable($fileName) )
+        throw New \Exception(sprintf('File not readable: %s', $fileName));
+
+
+    ### Remove headers that might unnecessarily clutter up the output
+    header_remove('Cache-Control');
+    header_remove('Pragma');
+
+
+    ### Default to send entire file
+    $byteOffset = 0;
+    $byteLength = $byteEnd = $fileSize = filesize($fileName);
+
+    header('Accept-Ranges: bytes', true);
+    header(sprintf('Content-Type: %s', $contentType), true);
+
+    if( $fileTitle )
+        header(sprintf('Content-Disposition: attachment; filename="%s"', $fileTitle));
+
+    ### Parse Content-Range header for byte offsets, looks like "bytes=11525-" OR "bytes=11525-12451"
+    if( isset($_SERVER['HTTP_RANGE']) && preg_match('%bytes=(\d+)-(\d+)?%i', $_SERVER['HTTP_RANGE'], $match) )
+    {
+        ### Offset signifies where we should begin to read the file
+        $byteOffset = (int)$match[1];
+
+        ### Length is for how long we should read the file according to the browser, and can never go beyond the file size
+        if( isset($match[2]) )
+            $byteEnd = min( (int)$match[2], $byteEnd);
+
+        header("HTTP/1.1 206 Partial content");
+        header(sprintf('Content-Range: bytes %d-%d/%d', $byteOffset, $byteEnd, $fileSize));  ### Contrary to the original comment (below), the -1 actually broke functionality. -Scott
+        // header(sprintf('Content-Range: bytes %d-%d/%d', $byteOffset, $byteLength - 1, $fileSize));  ### Decrease by 1 on byte-length since this definition is zero-based index of bytes being sent
+    }
+
+    $byteRange = $byteEnd - $byteOffset;
+
+    header(sprintf('Content-Length: %d', $byteRange));
+
+    header(sprintf('Expires: %s', date('D, d M Y H:i:s', time() + 60*60*24*90) . ' GMT'));
+
+
+    $buffer = '';   ### Variable containing the buffer
+    $bufferSize = 512 * 16; ### Just a reasonable buffer size
+    $bytePool = $byteRange; ### Contains how much is left to read of the byteRange
+
+    if( !$handle = fopen($fileName, 'r') )
+        throw New \Exception(sprintf("Could not get handle for file %s", $fileName));
+
+    if( fseek($handle, $byteOffset, SEEK_SET) == -1 )
+        throw New \Exception(sprintf("Could not seek to byte offset %d", $byteOffset));
+
+
+    while( $bytePool > 0 )
+    {
+        $chunkSizeRequested = min($bufferSize, $bytePool); ### How many bytes we request on this iteration
+
+        ### Try readin $chunkSizeRequested bytes from $handle and put data in $buffer
+        $buffer = fread($handle, $chunkSizeRequested);
+
+        ### Store how many bytes were actually read
+        $chunkSizeActual = strlen($buffer);
+
+        ### If we didn't get any bytes that means something unexpected has happened since $bytePool should be zero already
+        if( $chunkSizeActual == 0 )
+        {
+            ### For production servers this should go in your php error log, since it will break the output
+            trigger_error('Chunksize became 0', E_USER_WARNING);
+            break;
+        }
+
+        ### Decrease byte pool with amount of bytes that were read during this iteration
+        $bytePool -= $chunkSizeActual;
+
+        ### Write the buffer to output
+        print $buffer;
+
+        ### Try to output the data to the client immediately
+        flush();
+    }
+
+    exit();
+}
 
 ?>
 
