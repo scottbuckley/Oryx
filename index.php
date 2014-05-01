@@ -39,7 +39,9 @@ define('IMG_ICON', 'image/gif;base64,R0lGODlhDAAMAJECAAAAAJaWlv///wAAACH5BAEAAAI
 
 
 
-// the root page for phpsub's HTML frontend
+// the main page for phpsub's web interface. below you see only what is common to all pages.
+// the three functions provided $style, $script, and $body will be called at the appropriate times
+// to insert these sections. If you specify no arguments, the default (authorised) page is rendered.
 function webHome($style='htmlStyle', $script='htmlScript', $body='htmlBody') { ?>
 <html>
     <head>
@@ -80,6 +82,7 @@ function htmlBody() { ?>
                 <a href="javascript:prevTrack();">prev</a>
                 <a href="javascript:nextTrack();">next</a>
                 <a href="javascript:startTrack();">play</a>
+                <a href="javascript:startPreload();">preload</a>
             </div>
         </div>
         <div class="footerWrapper">
@@ -89,11 +92,8 @@ function htmlBody() { ?>
         </div>
 <?php }
 
-function htmlBadAuth() {
-    webHome(
-        'htmlStyle',
-        '·',
-function() { ?>
+// the raw HTML for a login form. This uses bootstrap heavily.
+function htmlLoginForm() { ?>
     <div class="loginContainer">
       <form class="form-signin" method="post">
         <h2 class="form-signin-heading">Please sign in to phpsub</h2>
@@ -103,7 +103,15 @@ function() { ?>
         <button class="btn btn-lg btn-primary btn-block" type="submit">Sign in</button>
       </form>
     </div>
-<?php });
+<?php }
+
+// create the raw HTML for a 'bad auth' page - this is just a login screen.
+function htmlBadAuth() {
+    webHome(
+        'htmlStyle',
+        '·',
+        'htmlLoginForm'
+    );
 }
 
 function postLoginFailAlert() {
@@ -317,6 +325,7 @@ function htmlScript() { ?>
             var currentTracks = Array();
             var currentTrackIndex = 0;
             var isPlaying = false;
+            var altAudio = null;
 
             $.fn.exists   = function () { return this.length !== 0; }
             $.fn.orreturn = function (def) { return this.exists() ? this : def; }
@@ -328,16 +337,29 @@ function htmlScript() { ?>
                 //bind event listeners
                 $(window).bind('hashchange', hashResponse);
 
-                $('#htmlAudio')
-                    .on('ended',   audEnded)
-                    .on('canplay', audCanPlay)
-                    .on('play',    audPlay)
-                    .on('pause',   audPause);
+                prepAudioElement();
 
                 // do straight away
                 hashResponseMaybe();
                 loadIndexes();
             });
+
+            function prepAudioElement() {
+                $('#htmlAudio')
+                    .on('ended',      audEnded)
+                    .on('canplay',    audCanPlay)
+                    .on('play',       audPlay)
+                    .on('pause',      audPause)
+                    .on('timeupdate', audTimeUpdate);
+            }
+
+            function doPlayPause() {
+                ddAudio = $('#htmlAudio').get(0);
+                if (ddAudio.paused)
+                    ddAudio.play();
+                else
+                    ddAudio.pause();
+            }
 
             function audEnded() {
                 isPlaying = false;
@@ -392,14 +414,71 @@ function htmlScript() { ?>
 
                 // play the track.
                 var newTrack = newTR.attr('subid');
-                $('#htmlAudio')
-                    .empty()
-                    .append($('<source>', {
-                          id    : 'htmlAudioSource'
-                        , subid : newTrack
-                        , type  : 'audio/mpeg'
-                        , src   : '?/rest/stream.view?id='+newTrack
-                    }));
+
+                if (altAudio!=null && altAudio.attr('subid') == newTrack) {
+                    console.log('Playing. Preloaded.');
+
+                    // set the (background loaded) audio element's id to htmlAudio, for later access
+                    altAudio.attr('id', 'htmlAudio');
+
+                    // replace the current audio element with the background-loaded one.
+                    $('#htmlAudio').replaceWith(altAudio);
+
+                    // wipe 'altAudio' from memory
+                    altAudio = null;
+
+                    // bind appropriate functions to the new audio element
+                    prepAudioElement();
+
+                    // make the new audio element start playing
+                    $('#htmlAudio').get(0).play();
+                } else {
+                    // set the source of the current audio element to be the new source, and tell it to load and play
+                    $('#htmlAudio')
+                        .attr('src', '?/rest/stream.view?id='+newTrack)
+                        .load();
+
+                    $('#htmlAudio').get(0).play();
+                    console.log('Playing. Not preloaded.')
+                }
+            }
+
+            function audTimeUpdate() {
+                if (!this.hasOwnProperty('preloadFlagged')) {
+                    var threshold = this.duration*0.75;
+                    if (this.currentTime > threshold) {
+                        startPreload();
+                        this.preloadFlagged = true;
+                    }
+                }
+            }
+
+            function getNextTrackId() {
+                var cur = $('.trackTR.playingTrack').first();
+                cur = cur.next('.trackTR');
+                if (cur) {
+                    return cur.attr('subid');
+                }
+                return 0;
+            }
+
+            function startPreload() {
+                // get the id for the track that should play next
+                var nextid = getNextTrackId();
+
+                // make a new audio element, which will preload the next mp3.
+                altAudio = $('<audio>', {
+                      src      : '?/rest/stream.view?id='+nextid
+                    , preload  : 'auto'
+                    , autoplay : 'false'
+                    , controls : 'controls'
+                    , subid    : nextid
+                });
+
+                // make sure that the new audio element doens't play in the background.
+                altAudio.get(0).pause();
+
+                console.log('preloading...');
             }
 
             function selectTrack(tid) {
@@ -1686,7 +1765,7 @@ function dbUpdateTrackInfo($fullpath, $data) {
 
 function dbGetIndexes() {
     $db = dbConnect();
-    $q=$db->query('SELECT id, name, lettergroup FROM tblDirectories WHERE isindex=1;');
+    $q=$db->query('SELECT id, name, lettergroup FROM tblDirectories WHERE isindex=1 ORDER BY lettergroup, name;');
     $data = $q->fetchAll();
     return $data;
 }
@@ -1975,7 +2054,7 @@ processURI();
 ### #    # #       ####  #    #   #    ####
 
 // taken from http://stackoverflow.com/questions/11340276/make-mp3-seekable-php (modified)
-// this seems to work with everything except safari
+// originally this was a little broken for safari, but I fixed it (content-length header).
 /**
  * Stream-able file handler
  *
