@@ -21,6 +21,13 @@ define('REQUIRE_AUTH', false);
 // you want to decrease the load on your server, because partial file service uses more resources than otherwise.
 define('STREAM_ALLOW_PARTIAL', true);
 
+// this defines whether the JavaScript playback engine will preload tracks, so the next song will play without delay.
+define('PLAYBACK_PRELOAD', true);
+
+// this defines whether the backdrop of a folder view (on the web frontend) will enclude a (very faded) album
+// art backdrop
+define('ALBUMART_BACKDROP', true);
+
 
 /**** The following settings should only be modified if you know what you're doing. ****/
 define('TIME_2033', 2000000000);
@@ -43,19 +50,28 @@ define('IMG_ICON', 'image/gif;base64,R0lGODlhDAAMAJECAAAAAJaWlv///wAAACH5BAEAAAI
 // the three functions provided $style, $script, and $body will be called at the appropriate times
 // to insert these sections. If you specify no arguments, the default (authorised) page is rendered.
 function webHome($style='htmlStyle', $script='htmlScript', $body='htmlBody') { ?>
-<html>
+<!DOCTYPE html>
+<html lang="en">
     <head>
         <meta charset="UTF-8">
 
         <!-- EXTERNAL JS  -->
-        <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"            ></script>
-        <script src="http://netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"          ></script>
-        <script src="http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.6.0/underscore-min.js" ></script>
+        <!-- // <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"            ></script> -->
+        <!-- // <script src="http://netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"          ></script> -->
+        
+        <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.min.js"                  ></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.1.1/js/bootstrap.min.js" ></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.6.0/underscore-min.js"       ></script>
+        
+        <!-- HTML5SORTABLE (DUMPED) -->
+        <script type="text/javascript">!function(a){var b,c=a();a.fn.sortable=function(d){var e=String(d);return d=a.extend({connectWith:!1,placeholder:null,dragImage:null},d),this.each(function(){if("reload"===e&&a(this).children(d.items).off("dragstart.h5s dragend.h5s selectstart.h5s dragover.h5s dragenter.h5s drop.h5s"),/^enable|disable|destroy$/.test(e)){var f=a(this).children(a(this).data("items")).attr("draggable","enable"===e);return void("destroy"===e&&(a(this).off("sortupdate"),f.add(this).removeData("connectWith items").off("dragstart.h5s dragend.h5s selectstart.h5s dragover.h5s dragenter.h5s drop.h5s").off("sortupdate")))}var g=a(this).data("opts");"undefined"==typeof g?a(this).data("opts",d):d=g;var h,i,j,k,l=a(this).children(d.items),m=null===d.placeholder?a("<"+(/^ul|ol$/i.test(this.tagName)?"li":"div")+' class="sortable-placeholder">'):a(d.placeholder).addClass("sortable-placeholder");l.find(d.handle).mousedown(function(){h=!0}).mouseup(function(){h=!1}),a(this).data("items",d.items),c=c.add(m),d.connectWith&&a(d.connectWith).add(this).data("connectWith",d.connectWith),l.attr("draggable","true").on("dragstart.h5s",function(c){if(c.stopImmediatePropagation(),d.handle&&!h)return!1;h=!1;var e=c.originalEvent.dataTransfer;e.effectAllowed="move",e.setData("Text","dummy"),d.dragImage&&e.setDragImage&&e.setDragImage(d.dragImage,0,0),i=(b=a(this)).addClass("sortable-dragging").index(),j=a(this).parent()}).on("dragend.h5s",function(){b&&(b.removeClass("sortable-dragging").show(),c.detach(),k=a(this).parent(),(i!==b.index()||j!==k)&&b.parent().triggerHandler("sortupdate",{item:b,oldindex:i,startparent:j,endparent:k}),b=null)}).not("a[href], img").on("selectstart.h5s",function(){return d.handle&&!h?!0:(this.dragDrop&&this.dragDrop(),!1)}).end().add([this,m]).on("dragover.h5s dragenter.h5s drop.h5s",function(e){if(!l.is(b)&&d.connectWith!==a(b).parent().data("connectWith"))return!0;if("drop"===e.type)return e.stopPropagation(),c.filter(":visible").after(b),b.trigger("dragend.h5s"),!1;if(e.preventDefault(),e.originalEvent.dataTransfer.dropEffect="move",l.is(this)){var f=b.outerHeight(),g=a(this).outerHeight();if(d.forcePlaceholderSize&&m.height(f),g>f){var h=g-f,i=a(this).offset().top;if(m.index()<a(this).index()&&e.originalEvent.pageY<i+h)return!1;if(m.index()>a(this).index()&&e.originalEvent.pageY>i+g-h)return!1}b.hide(),a(this)[m.index()<a(this).index()?"after":"before"](m),c.not(m).detach()}else c.is(this)||a(this).children(d.items).length||(c.detach(),a(this).append(m));return!1})})}}($);</script>
 
         <!-- EXTERNAL CSS -->
-        <link href='http://fonts.googleapis.com/css?family=Roboto:100,300,400,900'          rel='stylesheet' type='text/css'>
-        <link href="http://netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet" type="text/css">
-        <link href="http://netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css"   rel="stylesheet" type="text/css">
+        <!-- <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css"> -->
+        <!-- <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css"  > -->
+        <link rel="stylesheet" href="//fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900"               >
+        <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.1.1/css/bootstrap.min.css" >
+        <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/font-awesome/4.0.3/css/font-awesome.min.css"   >
 
         <link rel="icon" type="img/ico" href="data:<?php echo IMG_ICON; ?>">
 <?php $style();  ?>
@@ -78,11 +94,10 @@ function htmlBody() { ?>
         <div class="rightPanelWrapper">
             <div class="rightPanel">
                 <audio id="htmlAudio" controls autoplay></audio>
-                <table id="trackListTable"></table>
+                <table id="playlistTable"><tbody></tbody></table>
                 <a href="javascript:prevTrack();">prev</a>
                 <a href="javascript:nextTrack();">next</a>
                 <a href="javascript:startTrack();">play</a>
-                <a href="javascript:startPreload();">preload</a>
             </div>
         </div>
         <div class="footerWrapper">
@@ -134,6 +149,7 @@ function postLoginFailAlert() {
 
 function htmlStyle() { ?>
         <style type="text/css">
+            /* General */
             body {
                 font-family: 'Roboto', sans-serif;
                 font-weight: 100;
@@ -142,6 +158,22 @@ function htmlStyle() { ?>
                 width: 100%;
                 display: block;
             }
+            table {
+                font-family:  inherit;
+                font-size:    inherit;
+                font-style:   inherit;
+                font-variant: inherit;
+                font-weight:  inherit;
+            }
+            div.loader {
+                font-size: 300px;
+                color: #FAFAFA;
+                text-align: center;
+                margin: 100px;
+            }
+
+
+            /* Layout */
             .leftPanelWrapper {
                 position: absolute;
                 left: 0px;
@@ -156,8 +188,7 @@ function htmlStyle() { ?>
                 border-right: 1px solid #DDD;
                 border-bottom: 1px solid #DDD;
             }
-            .leftPanel {
-            }
+            .leftPanel {}
             .centrePanelWrapper {
                 position: absolute;
                 top: 0px;
@@ -165,9 +196,12 @@ function htmlStyle() { ?>
                 right: 300px;
                 bottom: 40px;
 
-                padding: 5px;
+                padding: 0px 0px 0px;
             }
             .centrePanel {
+                height: 100%;
+                background-color:#FFF;
+                overflow-y: scroll;
             }
             .rightPanelWrapper {
                 position: absolute;
@@ -175,6 +209,7 @@ function htmlStyle() { ?>
                 bottom: 40px;
                 width: 300px;
                 right: 0px;
+                overflow-y: scroll;
 
                 background-color: #EEE;
                 border-bottom-left-radius: 5px;
@@ -182,8 +217,7 @@ function htmlStyle() { ?>
                 border-left: 1px solid #DDD;
                 border-bottom: 1px solid #DDD;
             }
-            .rightPanel {
-            }
+            .rightPanel {}
             .footerWrapper {
                 position: absolute;
                 left: 0px;
@@ -199,16 +233,8 @@ function htmlStyle() { ?>
                 height: 100%;
                 padding: 5px;
             }
-            table {
-                font-family:  inherit;
-                font-size:    inherit;
-                font-style:   inherit;
-                font-variant: inherit;
-                font-weight:  inherit;
-            }
-            div.indexGroup {
 
-            }
+            /* Indexes */
             div.indexGroupHeader {
                 font-weight: 700;
                 background-color: #BBB;
@@ -220,7 +246,10 @@ function htmlStyle() { ?>
                 padding-left: 12px;
             }
             div.indexItem:hover {
-                background-color: #CCC;
+                background-color: #eaeaea;
+                padding-left: 9px;
+                border-left:  3px solid #ccc;
+                border-right: 3px solid #ccc;
             }
             a.indexItemAnchor {
                 color: #000;
@@ -228,38 +257,42 @@ function htmlStyle() { ?>
                 width: 100%;
                 display: block;
             }
-            table#trackListTable {
-                font-size: 8pt;
-                width: 100%;
-            }
-            .playingTrack {
-                font-weight: 400;
-            }
+
+            /* Header */
             h1 {
-                font-weight: 400;
-                background-color: #EEE;
-                margin: 0;
-                border-radius: 5px;
-                overflow: hidden;
-                border: 1px solid #DDD;
+                background-color: #FCFCFC;
+                /*background-color: rgba(0, 0, 0, 0.01);*/
+                margin: 0px 0px;
+                
+                color: rgba(138, 138, 138, 0.8);
+                text-shadow: 1px 4px 6px #eee, 0 0 0 #000, 1px 4px 6px #eee;
+                border-bottom: 1px solid #DDD;
+
+                padding: 5px;
+            }
+            #titleParent {
+                font-size: 20pt;
+                padding: 0px;
+            }
+            #titleParent a {
+                color: inherit;
             }
             #titleWrapper {
-                display:table-row;
+                font-weight: 700;
+                padding: 0px 0px 5px;
+
+                display:table;
+                width: 100%;
             }
             #directoryTitle {
                 display:table-cell;
+                width: 100%;
                 padding-left: 8px;
             }
-            #backButton {
-                width: 10px;
-                font-family: 'FontAwesome';
-                background-color: #CCC;
-                font-size: 20px;
-                color: #AAA;
+            #titleButton {
                 display: table-cell;
                 vertical-align: middle;
-                text-align: center;
-                text-decoration: none;
+                text-align: right;
             }
 
 
@@ -306,6 +339,113 @@ function htmlStyle() { ?>
                 border-top-left-radius:     0;
                 border-top-right-radius:    0;
             }
+
+            /* Directory List */
+            .tracktable {
+                width:         100%;
+            }   
+            tr.track {
+                cursor: pointer;
+            }
+            tr.track:hover td:last-child::after {
+                font-family: 'FontAwesome';
+                content:     '\f0a9';
+                display:     block;
+                float:       right;
+            }
+            th.trackTrack {
+                width: 1%;
+            }
+            th.trackDuration {
+                width: 1%;
+            }
+            .dirtableWrapper {
+                padding: 10px;
+            }
+            .dirtable {
+                width: 100%;
+                empty-cells: show;
+            }
+            .dirtable td:first-child {
+                width: 0px;
+            }
+            .dirtable td:last-child {
+            }
+            .dirtable tr:hover {
+                background-color: #EEE;
+            }
+            .dirtable td {
+                padding: 5px;
+            }
+            .dirtable td a {
+                color: inherit;
+                font-size: 20px;
+            }
+            .dirtable td:first-child {
+                width:  110px;
+                height: 110px;
+            }
+            img.dirListCover {
+                width:   100px;
+                height:  100px;
+                display: none;
+            }
+            .imgerror {
+                display: none;
+                font-family: 'FontAwesome';
+                text-align: center;
+                line-height: 100px;
+                width: 100px;
+                height: 100px;
+                font-size: 80px;
+                border: 1px solid #DDD;
+
+                color: white;
+                text-shadow:
+                -1px -1px 0 #000,  
+                 1px -1px 0 #000,
+                -1px  1px 0 #000,
+                 1px  1px 0 #000
+            }
+
+
+            /* Playlist */
+            #playlistTable {
+                font-size: 8pt;
+                width: 100%;
+            }
+            #playlistTable .playingTrack {
+                font-weight: 400;
+            }
+            #playlistTable .trackTR {
+                border: 1px solid transparent;
+                cursor: move;
+            }
+            #playlistTable .sortable-placeholder {
+                border: 1px dashed #CCC;
+                background: none;
+            }
+            #playlistTable .pliDuration {
+                text-align: right;
+                width: 20px;
+            }
+            #playlistTable .trackTR .pliPlay   ,
+            #playlistTable .trackTR .pliDelete {
+                font-family: 'FontAwesome';
+                color: transparent;
+                cursor: pointer;
+            }
+            #playlistTable .trackTR:hover .pliPlay   ,
+            #playlistTable .trackTR:hover .pliDelete {
+                color: #CCC;
+            }
+            #playlistTable .trackTR .pliPlay:hover   ,
+            #playlistTable .trackTR .pliDelete:hover {
+                color: #000;
+            }
+            #playlistTable .trackTR .pliDelete {
+                text-align: right;
+            }
         </style>
 <?php }
 
@@ -321,27 +461,45 @@ function htmlStyle() { ?>
 function htmlScript() { ?>
         <script type="text/javascript">
 
+            //settings via PHP
+            var PLAYBACK_PRELOAD  = <?php echo tf(PLAYBACK_PRELOAD); ?>;
+            var ALBUMART_BACKDROP = <?php echo tf(ALBUMART_BACKDROP); ?>;
+
             //semi-globals
-            var currentTracks = Array();
             var currentTrackIndex = 0;
             var isPlaying = false;
             var altAudio = null;
+
+            //code snippets
+            var snippetLoader =       '<div class="loader"><i class="fa fa-cog fa-spin"></i></div>';
+            var snippetErrorLoading = '<div class="loader"><i class="fa fa-wheelchair"></i></div>';
+            var snippetTrackLoading = '<i class="fa fa-spinner fa-spin"></i>';
 
             $.fn.exists   = function () { return this.length !== 0; }
             $.fn.orreturn = function (def) { return this.exists() ? this : def; }
             $.fn.orrun    = function (foo) { return foo(); };
 
 
+            // this executes when the document is 'ready'. Here we do a bunch of preparation for
+            // later behaviour.
             $(function() {
 
-                //bind event listeners
+                //bind hash listener, and process URL's hash
                 $(window).bind('hashchange', hashResponse);
-
-                prepAudioElement();
-
-                // do straight away
                 hashResponseMaybe();
+
+                // load the indexes (on the left)
                 loadIndexes();
+
+                // make the playlist sortable
+                $('#playlistTable tbody').sortable({
+                      items                : 'tr'
+                    , placeholder          : '<tr><td colspan="3">&nbsp;</td></tr>'
+                    , forcePlaceholderSize : true
+                });
+
+                // bind listeners to the audio element
+                prepAudioElement();
             });
 
             function prepAudioElement() {
@@ -444,7 +602,7 @@ function htmlScript() { ?>
             }
 
             function audTimeUpdate() {
-                if (!this.hasOwnProperty('preloadFlagged')) {
+                if (!this.hasOwnProperty('preloadFlagged') && PLAYBACK_PRELOAD) {
                     var threshold = this.duration*0.75;
                     if (this.currentTime > threshold) {
                         startPreload();
@@ -481,48 +639,123 @@ function htmlScript() { ?>
                 console.log('preloading...');
             }
 
+
+            var firstTimeSelected = true;
             function selectTrack(tid) {
 
-                var dTrackTable = $('#trackListTable');
+                var dTrackTable = $('#playlistTable tbody');
 
-                currentTracks.push(tid);
-                dTrackTable.append($('<tr>', {
+                var dNewTrackTR = $('<tr>', {
                       class : 'trackTR'
-                    , id    :'track'+tid
+                    , id    : 'track'+tid
                     , subid : tid
-                }).load('?/web/track_tr?id='+tid));
+                    , html  : snippetTrackLoading
+                });
 
-                if (!isPlaying) {
+                dTrackTable.append(dNewTrackTR);
+
+                // enable the play 'button'
+                dNewTrackTR.load('?/web/track_tr?id='+tid, function() {
+                    dNewTrackTR.find('.pliPlay').click(function() {
+                        dNewTrackTR.siblings().removeClass('playingTrack');
+                        dNewTrackTR.addClass('playingTrack');
+                        startTrack();
+                    });
+                    dNewTrackTR.find('.pliDelete').click(function() {
+                        dNewTrackTR.remove();
+                    });
+                });
+
+                // make sure the new item is sortable
+                dTrackTable.sortable('reload');
+
+                if (firstTimeSelected) {
                     startTrack();
+                    firstTimeSelected = false;
                 }
 
             }
 
+            function lc(func) {
+                return function(e) {
+                    if (e.which === 1)
+                        func.call(this);
+                };
+            }
+
             function loadDirectory(dirId) {
-                $(".centrePanel").load("?/web/directory?id=" + dirId, function() {
+                $(".centrePanelWrapper").css('background-image', 'none');
+                $(".centrePanel").css('opacity', '1.0');
 
-                    // clicking on titles plays track
-                    $(".dirFileTitle").click(function() {
-                        var id = $(this).attr("subid");
-                        selectTrack(id);
-                    });
+                $(".centrePanel")
+                    .html(snippetLoader)
 
-                    // the back button
-                    $("#backButton")
-                        .html('&#xf0d9;')
-                        .hover(function() {
-                            $(this).stop().animate({
-                                  width    : 40
-                                , fontSize : 40
+                    .load("?/web/directory?id=" + dirId, function(d,s,r) {
+
+                        // report that things didn't go well
+                        if (s!='success') {
+                            $(this).html(snippetErrorLoading);
+                        }
+
+                        // clicking on titles plays track
+                        $("tr.track").click(function() {
+                            var id = $(this).attr("subid");
+                            selectTrack(id);
+                        });
+
+                        // turning directory rows into links
+                        $(".dirtable tr").click(lc(function() {
+                            window.location = "#/" + $(this).attr('subid');
+                        }));
+
+                        // the 'add all' button
+                        $("#titleButton button").click(function() {
+                            $("tr.track").each(function() {
+                                var id = $(this).attr("subid");
+                                selectTrack(id);
+                            });
+                            setTimeout(function() { $("#titleButton button").blur(); }, 1000);
+                        });
+
+                        // broken images
+                        $("img.dirListCover").error(function() {
+                            var b = $(this).parent();
+                            $(this).replaceWith('<div class="imgerror">&#xf025;</div>');
+                            b.find('div.imgerror').fadeIn();
+                        });
+                        $("img.dirListCover").load(function() {
+                            $(this).fadeIn();
+                        });
+
+                        // background image
+                        if (ALBUMART_BACKDROP) {
+                            $.get('?/rest/getCoverArt.view?id='+ dirId + '&size=100', function() {
+                                //success
+                                centrePanelLoadImage(dirId);
+                            }).fail(function() {
+                                //failure
                             });
                         }
-                        , function() {
-                            $(this).stop().animate({
-                                  width    : 10
-                                , fontSize : 20
-                            });
-                        });
-                });
+
+
+                        
+
+
+                    });
+            }
+
+            function centrePanelLoadImage(dirId) {
+                $(".centrePanelWrapper")
+                    .css('background-size'     , 'cover')
+                    .css('background-position' , 'center center')
+                    .css('background-image'    , 'url(?/rest/getCoverArt.view?id='+ dirId +')');
+
+                $(".centrePanel")
+                    .stop(true)
+                    .css('opacity', '1.0');
+
+                $(".centrePanel")
+                    .animate({'opacity':'0.95'}, 5000);
             }
 
             function loadIndexes() {
@@ -568,56 +801,97 @@ function webIndexes() {
     $indexes = splitIntoSubarrays(dbGetIndexes());
 
     foreach(array_keys($indexes) as $index) {
-        »("<div class='indexGroup'><div class='indexGroupHeader'>$index</div>");
+        »("<div class=`indexGroup`><div class=`indexGroupHeader`>$index</div>");
 
         // add artists to index
         foreach($indexes[$index] as $artist) {
             $id   =   $artist['id'];
             $name = §($artist['name']);
 
-            »("<div class='indexItem'><a class='indexItemAnchor' href='#/$id'>$name</a></div>");
+            »("<div class=`indexItem`><a class=`indexItemAnchor` href=`#/$id`>$name</a></div>");
         }
         »("</div>");
     }
 }
 
 function webDirectory() {
-    $id       = intval($_REQUEST['id']);
-    $folders  = dbGetSubFolders($id);
-    $files    = dbGetSubFiles($id);
-    $parentId = dbGetParentId($id);
-
+    // prepare data
+    $id          = intval($_REQUEST['id']);
+    $folders     = dbGetSubFolders($id);
+    $files       = dbGetSubFiles($id);
+    $grandparent = dbGetParent($id);
     $parentName = §(¿D(¿D(null, $folders, 0, 'parentname'), $files, 0, 'parentname'));
 
-    if ($parentId) {
-        »("<h1><div id='titleWrapper'><a id='backButton' href='#/$parentId'></a><span id='directoryTitle'>$parentName</span></div></h1>");
-    } else {
-        »("<h1><span id='directoryTitle'>$parentName</span></h1>");
+    // grandparent link
+    $snippetGrandParent = '';
+    if ($grandparent) {
+        $gpName = $grandparent['name'];
+        $gpId   = $grandparent['id'];
+        $snippetGrandParent = "<div id=`titleParent`><a href=`#/$gpId`>$gpName</a></div>";
     }
 
+    // 'add all' button
+    $snippetAddAll = '';
+    if (count($files) > 0)
+        $snippetAddAll = »s("<button class=`btn btn-default btn-s addAllButton`>
+                                Add All <i class=`fa fa-arrow-circle-right`></i>
+                            </button>");
 
-    // print subfolders
-    foreach ($folders as $folder) {
-        $name = §($folder['name']);
-        $id   =   $folder['id'];
+    // title
+    »("<h1>
+        $snippetGrandParent
+        <div id=`titleWrapper`>
+            <div id=`titleName`>$parentName</div>
+            <div id=`titleButton`>$snippetAddAll</div>
+        </div>
+    </h1>");
 
-        »("<div class='dirFolder'><a href='#/$id'>$name</a></div>");
+    // subfolders
+    if (count($folders) > 0) {
+        »("<div class=`dirtableWrapper`>");
+        »("<table class=`dirtable`>");
+        foreach ($folders as $folder) {
+            $name = §($folder['name']);
+            $id   =   $folder['id'];
+            »("<tr subid=`$id`>
+                <td><img class=`dirListCover` src=`?/rest/getCoverArt.view?id=$id&size=100`></td>
+                <td><a href=`#/$id`>$name</a></td>
+            </tr>");
+        }
+        »("</table>");
+        »("</div>");
     }
 
-    // print files
+    // files
     if (count($files) > 0) {
+        »("<table class=`table table-striped table-condensed tracktable`>");
+        »("<div class=`trackthing`></div>");
+        »("<thead><tr>
+            <th class=`trackTrack`   >#</th>
+            <th class=`trackTitle`   >Title</th>
+            <th class=`trackArtist`  >Artist</th>
+            <th class=`trackAlbum`   >Album</th>
+            <th class=`trackDuration`>Duration</th>
+           </tr></thead>");
 
-        »("<table class='dirFilesTable'>");
-        »("<tr><th>#</th><th>Title</th><th>Duration</th></tr>");
-
+        »("<tbody>");
         foreach ($files as $file) {
             $id       = $file['id'];
             $track    = §($file['trackint']);
             $title    = §($file['title']);
+            $artist   = §($file['artist']);
+            $album    = §($file['album']);
             $duration = minSecs($file['duration']);
 
-            »("<tr><td>$track</td><td class='dirFileTitle' subid='$id'>$title</td><td>$duration</td></tr>");
+            »("<tr class=`track` subid=`$id`>
+                <td>$track</td>
+                <td>$title</td>
+                <td>$artist</td>
+                <td>$album</td>
+                <td>$duration</td>
+               </tr>");
         }
+        »("</tbody>");
         »("</table>");
     }
 }
@@ -630,7 +904,10 @@ function webTrackTR() {
     $title    =       §($track['title']);
     $duration = minSecs($track['duration']);
 
-    echo "<td>$title</td><td>$duration</td>";
+    »("<td class=`pliPlay`>&#xf04b;</td>
+       <td class=`pliName`>$title</td>
+       <td class=`pliDuration`>$duration</td>
+       <td class=`pliDelete`>&#xf00d;</td>");
 }
 
 function minSecs($time) {
@@ -773,7 +1050,7 @@ function my_hex2bin($h) {
 
 class ResponseObject {
     private $name;
-    private $properties;
+    public $properties;
     private $children;
 
     public function ResponseObject($name, $props=array(), $children=array()) {
@@ -786,6 +1063,10 @@ class ResponseObject {
         if ($newChild instanceof ResponseObject) {
             $this->children[] = $newChild;
         }
+    }
+
+    public function addProperty($key, $value) {
+        $this->properties[$key] = $value;
     }
 
     public function setProperties($props) {
@@ -808,14 +1089,19 @@ class ResponseObject {
 
     public function renderJSON($status='ok') {
         setContentType('JSON');
-        $res = $this->wrapInSubsonicResponse($status);
+
+        $res = $this;
+        if ($status)
+            $res = $this->wrapInSubsonicResponse($status);
 
         return "{\n".$res->toJSON(1)."\n}";
     }
 
     public function renderXML($status='ok') {
         setContentType('XML');
-        $res = $this->wrapInSubsonicResponse($status);
+        $res = $this;
+        if ($status)
+            $res = $this->wrapInSubsonicResponse($status);
 
         return '<?xml version="1.0" encoding="UTF-8"?>'.$res->toXML(0);
     }
@@ -838,8 +1124,13 @@ class ResponseObject {
 
         // print properties
         foreach($props as $key => $value) {
-            $safeValue = safeJSONencode($value);
+            if (is_array($value)) {
+                $safeValue = '['.implode(', ', array_map('safeJSONencode', $value)).']';
+            } else {
+                $safeValue = safeJSONencode($value);
+            }
             $pref = $this->commaStart($count++, "\n");
+
             $newJSON .= "$pref$ind\"$key\": $safeValue";
         }
 
@@ -1002,7 +1293,8 @@ function getMusicDirectory() {
 
 function getCoverArt() {
     $id = $_REQUEST['id'];
-    $size = nonzero($_REQUEST['size'], 100);
+    // $size = nonzero($_REQUEST['size'], 100);
+    $size = ¿($_REQUEST,'size');
     if (!streamCoverArt($id, $size)) {
         header('HTTP/1.1 404 Not Found');
         echo "Sorry, the art doesn't seem to exist :(";
@@ -1066,8 +1358,8 @@ function restBadAuth() {
 }
 
 function scanTracks_First() {
-    echo "<p>scanning mp3 data</p>";
-    scanMP3Info_First();
+    $response = new ResponseObject('mp3scan');
+    $numRemaining = scanMP3Info_First($response);
     echo '
 <script language="javascript" type="text/javascript">
     setTimeout(function() {
@@ -1075,6 +1367,8 @@ function scanTracks_First() {
     }, 800);
 </script>
 ';
+    echo $response->properties['count'];
+    // echo $response->renderJSON(false);
 }
 
 function scanTracks_Second() {
@@ -1205,16 +1499,17 @@ function streamMP3($id) {
 
 function streamCoverArt($id, $size) {
     $thumbPath = "thumbs/id".$id."_size".$size.".jpg";
-    if (thumbFromCache($thumbPath))
+    if (thumbFromFile($thumbPath))
         return true;
     if (thumbFromFolderJPG($id, $size, $thumbPath))
         return true;
     return false;
 }
-function thumbFromCache($thumbPath) {
+function thumbFromFile($thumbPath) {
     if (file_exists($thumbPath)) {
         setContentType('JPEG');
         fpassthru(fopen($thumbPath, 'rb'));
+        exit;
         return true;
     }
     return false;
@@ -1222,7 +1517,11 @@ function thumbFromCache($thumbPath) {
 function thumbFromFolderJPG($id, $size, $thumbPath) {
     $fname = dbGetFolderPath($id)."/Folder.jpg";
     if (file_exists($fname)) {
-        generateThumb($fname, $id, $size, $thumbPath);
+        if ($size) {
+            generateThumb($fname, $id, $size, $thumbPath);
+        } else {
+            thumbFromFile($fname);
+        }
         return true;
     }
     return false;
@@ -1470,20 +1769,22 @@ function isRightFileType($filename) {
     return false;
 }
 
-function scanMP3Info_First() {
+function scanMP3Info_First($response) {
     global $OPT_SCAN_COUNTPERREFRESH;
     dbBeginTrans();
-    $mp3s = dbGetUnscannedTracks($OPT_SCAN_COUNTPERREFRESH);
+    $count = dbGetUnscannedCount();
+    $mp3s  = dbGetUnscannedTracks($OPT_SCAN_COUNTPERREFRESH);
     foreach($mp3s as $mp3) {
         $meta = getMP3Info($mp3);
         $meta = localize_GetID3_results($meta);
         dbUpdateTrackInfo($mp3, $meta);
     }
+    $response->addProperty('count', $count);
+    $response->addProperty('mp3s' , $mp3s );
     dbEndTrans();
 }
 
 function getMP3Info($filename) {
-    echo "<p>$filename</p>";
     return getID3Data($filename);
 }
 
@@ -1647,6 +1948,7 @@ function dbCreateTables() {
 
 
 function dbWriteIndexes($indexes) {
+    global $OPT_MUSICDIR;
     $db = dbConnect();
     $db->beginTransaction();
     foreach($indexes as $letter => $folders) {
@@ -1662,11 +1964,12 @@ function dbWriteIndexes($indexes) {
                     , :name
                     , 1
                     , :name
-                    , :name
+                    , :fullpath
                 );');
             $q->execute(array(
                   ':lettergroup' => $letter
                 , ':name'        => $folder
+                , ':fullpath'    => $OPT_MUSICDIR.$folder
             ));
         }
     }
@@ -1719,18 +2022,19 @@ function dbWriteTrackData($filePath, $filename, $fileExtn, $parentId, $parentNam
 }
 
 function dbGetUnscannedTracks($limit) {
-
     $db = dbConnect();
-    $q=$db->prepare('SELECT COUNT(*) FROM vwUnscannedTracks;');
-    $q->execute();
-    $count = $q->fetch();
-    $count = $count[0];
-    echo "<p>Remaining: $count</p>";
-
     $q=$db->prepare('SELECT fullpath FROM vwUnscannedTracks LIMIT ?;');
     $q->execute(array($limit));
     $data=$q->fetchAll(PDO::FETCH_COLUMN, 0);
     return $data;
+}
+
+function dbGetUnscannedCount() {
+    $db = dbConnect();
+    $q=$db->prepare('SELECT COUNT(*) FROM vwUnscannedTracks;');
+    $q->execute();
+    $count = $q->fetch();
+    return $count[0];
 }
 
 function dbUpdateTrackInfo($fullpath, $data) {
@@ -1765,7 +2069,8 @@ function dbUpdateTrackInfo($fullpath, $data) {
 
 function dbGetIndexes() {
     $db = dbConnect();
-    $q=$db->query('SELECT id, name, lettergroup FROM tblDirectories WHERE isindex=1 ORDER BY lettergroup, name;');
+    $q=$db->query('SELECT id, name, lettergroup FROM tblDirectories WHERE isindex=1
+                   ORDER BY (lettergroup = "#"), lettergroup, name;');
     $data = $q->fetchAll();
     return $data;
 }
@@ -1794,12 +2099,13 @@ function dbGetTrack($id) {
     return $data;
 }
 
-function dbGetParentId($id) {
+function dbGetParent($id) {
     $db = dbConnect();
-    $q=$db->prepare('SELECT parentid FROM tblDirectories WHERE id=?');
+    $q=$db->prepare('SELECT * FROM tblDirectories WHERE id IN 
+                        (SELECT parentid FROM tblDirectories WHERE id=?)');
     $q->execute(array($id));
     $data = $q->fetch();
-    return $data[0];
+    return $data;
 }
 
 function dbGetMP3filename($id) {
@@ -1812,10 +2118,10 @@ function dbGetMP3filename($id) {
 
 function dbGetFolderPath($id) {
     $db = dbConnect();
-    $q=$db->prepare('SELECT fullpath FROM tblDirectories WHERE id=? AND isindex=0');
+    $q=$db->prepare('SELECT fullpath FROM tblDirectories WHERE id=?');
     $q->execute(array($id));
-    $data = $q->fetchAll(PDO::FETCH_COLUMN, 0);
-    return $data[0];
+    $data = $q->fetch(PDO::FETCH_COLUMN, 0);
+    return $data;
 }
 
 function dbCheckUserPass($un, $pw) {
@@ -1977,6 +2283,11 @@ function localize_GetID3_results($data) {
     return $new;
 }
 
+// true or false, as a string
+function tf($bool) {
+    return $bool ? 'true' : 'false';
+}
+
 // [right-pointing double angle quotation mark] echos input, with newline, and replaces ' with "
 function »($str) {
     echo "\n".»s($str);
@@ -1984,7 +2295,7 @@ function »($str) {
 
 // merely replaces ' with "
 function »s($str) {
-    return str_replace("'", '"', $str);
+    return str_replace("`", '"', $str);
 }
 
 // [section sign] makes a string html-safe, for web rendering
