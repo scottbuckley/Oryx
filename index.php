@@ -31,7 +31,7 @@ define('ALBUMART_BACKDROP', true);
 
 /**** The following settings should only be modified if you know what you're doing. ****/
 define('TIME_2033', 2000000000);
-$OPT_SCAN_COUNTPERREFRESH = 75;
+define('OPT_SCAN_COUNTPERREFRESH', 150);
 $OPT_ACCEPTED_FILE_TYPES = array('.mp3');
 $OPT_IGNOREDFOLDERS = array('..', '.');
 define('IMG_ICON', 'image/gif;base64,R0lGODlhDAAMAJECAAAAAJaWlv///wAAACH5BAEAAAIALAAAAAAMAAwAAAIZlI+pGe2NgpKHxssOAGobn4AgInKhuaRpAQA7');
@@ -737,10 +737,6 @@ function htmlScript() { ?>
                             });
                         }
 
-
-                        
-
-
                     });
             }
 
@@ -1342,7 +1338,7 @@ function createDB() {
     dbCreateTables();
 }
 
-function scanEverything() {
+function scanNewFiles() {
     echo "Scanning Indexes...";
     scanIndexes();
     echo "Scanning folders...";
@@ -1357,9 +1353,9 @@ function restBadAuth() {
     echo $response->render('failed');
 }
 
-function scanTracks_First() {
+function scanTracks() {
     $response = new ResponseObject('mp3scan');
-    $numRemaining = scanMP3Info_First($response);
+    $numRemaining = scanMP3Info($response);
     echo '
 <script language="javascript" type="text/javascript">
     setTimeout(function() {
@@ -1369,11 +1365,6 @@ function scanTracks_First() {
 ';
     echo $response->properties['count'];
     // echo $response->renderJSON(false);
-}
-
-function scanTracks_Second() {
-    echo "<p>scanning mp3 data, second pass</p>";
-    scanMP3Info_Second();
 }
 
 
@@ -1413,10 +1404,30 @@ function getPageMap() {
 
         // URIs for performing other functions
         , '/signout'        => 'authSignOut'
-        , '/web/scan'       => 'scanEverything'
-        , '/web/scan2'      => 'scanTracks_First'
+        , '/web/scan'       => 'scanNewFiles'
+        , '/web/scan2'      => 'scanTracks'
         , '/web/createdb'   => 'createDB'
+
+        // other
+        , '/web/test'       => 'test'
         );
+}
+
+// for testing
+function test() {
+    $meow['b'] = 3;
+    print_r($meow);
+
+    echo gg($meow['a']);
+    echo gg($meow['b']);
+    echo gg($meow['c']);
+
+}
+
+function gg(&$G) {
+    if (isset($G))
+        return $G;
+    return "NOPE";
 }
 
 
@@ -1769,19 +1780,22 @@ function isRightFileType($filename) {
     return false;
 }
 
-function scanMP3Info_First($response) {
-    global $OPT_SCAN_COUNTPERREFRESH;
+function scanMP3Info($response) {
     dbBeginTrans();
     $count = dbGetUnscannedCount();
-    $mp3s  = dbGetUnscannedTracks($OPT_SCAN_COUNTPERREFRESH);
-    foreach($mp3s as $mp3) {
-        $meta = getMP3Info($mp3);
-        $meta = localize_GetID3_results($meta);
-        dbUpdateTrackInfo($mp3, $meta);
+    $tracks  = dbGetUnscannedTracks(OPT_SCAN_COUNTPERREFRESH);
+    foreach($tracks as $track) {
+        $filepath = $track['fullpath'];
+        $meta = getMP3Info($filepath);
+        $meta = localize_GetID3_results($meta, $track);
+        dbUpdateTrackInfo($filepath, $meta);
     }
-    $response->addProperty('count', $count);
-    $response->addProperty('mp3s' , $mp3s );
     dbEndTrans();
+
+    $response->addProperty('count', $count);
+
+    // uncomment this if you want the JSON response to list the filenames scanned
+    // $response->addProperty('mp3s' , $tracks );
 }
 
 function getMP3Info($filename) {
@@ -1923,7 +1937,8 @@ function dbCreateTables() {
             albumid          INTEGER,
             artistid         INTEGER,
             id3version       STRING,
-            created          INTEGER
+            created          INTEGER,
+            id3imagechecked  INTEGER DEFAULT 0
         );'); echo "tblTrackData created.<br/>";
     $db->exec('
         CREATE TABLE IF NOT EXISTS tblUsers (
@@ -2023,9 +2038,9 @@ function dbWriteTrackData($filePath, $filename, $fileExtn, $parentId, $parentNam
 
 function dbGetUnscannedTracks($limit) {
     $db = dbConnect();
-    $q=$db->prepare('SELECT fullpath FROM vwUnscannedTracks LIMIT ?;');
+    $q=$db->prepare('SELECT fullpath, parentname, grandparentname, filename FROM vwUnscannedTracks LIMIT ?;');
     $q->execute(array($limit));
-    $data=$q->fetchAll(PDO::FETCH_COLUMN, 0);
+    $data=$q->fetchAll();
     return $data;
 }
 
@@ -2262,8 +2277,25 @@ function intornull($a) {
     return intval($a);
 }
 
-function localize_GetID3_results($data) {
-    //TODO: deal with times when 'Title' etc are not present
+function filenameToTitle($filename, $artist) {
+
+    // remove '.mp3' from the end
+    if (strlen($filename) < 5) return $filename;
+    $extPatt = '/'.preg_quote('.mp3').'$/i';
+    $filename = preg_replace($extPatt, '', $filename);
+
+    // remove the artist from the beginning
+    if (strlen($filename) < (strlen($artist)+3)) return $filename;
+    $artPatt = '/^'.preg_quote($artist).'/i';
+    $filename = preg_replace($artPatt, '', $filename);
+
+    // remove whitespace (etc) from start/end
+    $filename = trim($filename, "- \t\n\r\0\x0B");
+
+    return $filename;
+}
+
+function localize_GetID3_results($data, $dbinfo) {
     $new = array();
     $new['Title'] =               ¿($data, 'comments', 'title', 0);
     $new['Album'] =               ¿($data, 'comments', 'album', 0);
@@ -2274,6 +2306,13 @@ function localize_GetID3_results($data) {
     $new['Bitrate'] =       round(¿($data, 'audio', 'bitrate')/1000);
     $new['Sampling Rate'] =       ¿($data, 'audio', 'sample_rate');
     $new['Filesize'] =            ¿($data, 'filesize');
+
+    // if there is no album/author, we use the parentname/grandparentname
+    $new['Album'] = $new['Album'] ?: $dbinfo['parentname'];
+    $new['Author'] = $new['Author'] ?: $dbinfo['grandparentname'];
+
+    // if there is no Title, we use the filename (after processing it)
+    $new['Title'] = $new['Title'] ?: filenameToTitle($dbinfo['filename'], $new['Author']);
 
     //how we deal with 'version' is weird
     $new['Version'] =       isset($data['id3v2'])?2:(isset($data['id3v1'])?1:0);
