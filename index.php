@@ -95,9 +95,12 @@ function htmlBody() { ?>
             <div class="rightPanel">
                 <audio id="htmlAudio" controls autoplay></audio>
                 <table id="playlistTable"><tbody></tbody></table>
-                <a href="javascript:prevTrack();">prev</a>
-                <a href="javascript:nextTrack();">next</a>
-                <a href="javascript:startTrack();">play</a>
+                <div id="playerControls">
+                    <button type="button" data-toggle="tooltip" data-placement="bottom" title="Previous Track" onclick="javascript:prevTrack();"     class="btn btn-default btn-s"><i class="fa fa-step-backward"></i></button>
+                    <button type="button" data-toggle="tooltip" data-placement="bottom" title="Restart Track"  onclick="javascript:startTrack();"    class="btn btn-default btn-s"><i class="fa fa-rotate-right" ></i></button>
+                    <button type="button" data-toggle="tooltip" data-placement="bottom" title="Next Track"     onclick="javascript:nextTrack();"     class="btn btn-default btn-s"><i class="fa fa-step-forward" ></i></button>
+                    <button type="button" data-toggle="tooltip" data-placement="bottom" title="Clear Playlist" onclick="javascript:clearPlaylist();" class="btn btn-default btn-s"><i class="fa fa-trash-o"      ></i></button>
+                </div>
             </div>
         </div>
         <div class="footerWrapper">
@@ -130,7 +133,7 @@ function htmlBadAuth() {
 }
 
 function postLoginFailAlert() {
-    if (¿($GLOBALS, 'loginPostTried')) { ?>
+    if (¿($GLOBALS['loginPostTried'])) { ?>
         <div class="alert alert-danger fade in">
             <strong>Bad work bro.</strong> Your username and password didn't work. Try again I guess.
         </div>
@@ -446,6 +449,14 @@ function htmlStyle() { ?>
             #playlistTable .trackTR .pliDelete {
                 text-align: right;
             }
+            #playerControls {
+                margin-top: 5px;
+                text-align: center;
+            }
+            #playerControls button {
+                padding: 5px 10px;
+                font-size: 15px;
+            }
         </style>
 <?php }
 
@@ -500,7 +511,21 @@ function htmlScript() { ?>
 
                 // bind listeners to the audio element
                 prepAudioElement();
+
+                // setup tooltips on buttons
+                $('#playerControls button').tooltip();
+
+                prepButtons();
             });
+
+            function prepButtons(selector) {
+                if(typeof(selector)==='undefined') selector = 'button';
+
+                $(selector).click(function(){
+                    var that = this;
+                    setTimeout(function() { $(that).blur(); }, 1000);
+                });
+            }
 
             function prepAudioElement() {
                 $('#htmlAudio')
@@ -530,6 +555,10 @@ function htmlScript() { ?>
 
             function audCanPlay() {}
             function audPause() {}
+
+            function clearPlaylist() {
+                $('#playlistTable tbody').empty();
+            }
 
             function nextTrack() {
                 moveTrack(1);
@@ -714,8 +743,8 @@ function htmlScript() { ?>
                                 var id = $(this).attr("subid");
                                 selectTrack(id);
                             });
-                            setTimeout(function() { $("#titleButton button").blur(); }, 1000);
                         });
+                        prepButtons("#titleButton button");
 
                         // broken images
                         $("img.dirListCover").error(function() {
@@ -816,7 +845,8 @@ function webDirectory() {
     $folders     = dbGetSubFolders($id);
     $files       = dbGetSubFiles($id);
     $grandparent = dbGetParent($id);
-    $parentName = §(¿D(¿D(null, $folders, 0, 'parentname'), $files, 0, 'parentname'));
+    $parentName = §(¿A($folders, 0, 'parentname') ?: ¿A($files, 0, 'parentname'));
+
 
     // grandparent link
     $snippetGrandParent = '';
@@ -945,8 +975,8 @@ function badAuth($requestPath) {
 function checkAuth() {
 
     // check cookie
-    $cookie_un = ¿($_COOKIE, 'phpsub_auth', 'un');
-    $cookie_pw = ¿($_COOKIE, 'phpsub_auth', 'pw');
+    $cookie_un = ¿($_COOKIE['phpsub_auth']['un']);
+    $cookie_pw = ¿($_COOKIE['phpsub_auth']['pw']);
 
     if ($cookie_un && $cookie_pw)
         if(dbCheckUserPass($cookie_un, unhex($cookie_pw)))
@@ -954,8 +984,8 @@ function checkAuth() {
     
 
     // check POST    
-    $post_un = ¿($_POST, 'frmUsr');
-    $post_pw = ¿($_POST, 'frmPwd');
+    $post_un = ¿($_POST['frmUsr']);
+    $post_pw = ¿($_POST['frmPwd']);
 
     if ($post_un && $post_pw) {
         if(dbCheckUserPass($post_un, $post_pw)) {
@@ -969,8 +999,8 @@ function checkAuth() {
 
 
     // check GET
-    $get_un = ¿($_REQUEST, 'u');
-    $get_pw = ¿($_REQUEST, 'p');
+    $get_un = ¿($_REQUEST['u']);
+    $get_pw = ¿($_REQUEST['p']);
 
     if ($get_un && $get_pw)
         if(dbCheckUserPass($get_un, unhex($get_pw)))
@@ -1290,7 +1320,7 @@ function getMusicDirectory() {
 function getCoverArt() {
     $id = $_REQUEST['id'];
     // $size = nonzero($_REQUEST['size'], 100);
-    $size = ¿($_REQUEST,'size');
+    $size = ¿($_REQUEST['size']);
     if (!streamCoverArt($id, $size)) {
         header('HTTP/1.1 404 Not Found');
         echo "Sorry, the art doesn't seem to exist :(";
@@ -1355,7 +1385,7 @@ function restBadAuth() {
 
 function scanTracks() {
     $response = new ResponseObject('mp3scan');
-    $numRemaining = scanMP3Info($response);
+    scanMP3Info($response);
     echo '
 <script language="javascript" type="text/javascript">
     setTimeout(function() {
@@ -1386,15 +1416,15 @@ function forceRefresh() {
 function getPageMap() {
     return array
           // URIs for the RESTful API
-        ( '/rest/getMusicDirectory.view'  => 'getMusicDirectory'
-        , '/rest/getMusicFolders.view'    => 'getMusicFolders'
-        , '/rest/getRandomSongs.view'     => 'getRandomSongs'
-        , '/rest/getCoverArt.view'        => 'getCoverArt'
-        , '/rest/getStarred.view'         => 'getStarredSongs'
-        , '/rest/getIndexes.view'         => 'getIndexes'
-        , '/rest/getLicense.view'         => 'getLicense'
-        , '/rest/stream.view'             => 'stream'
-        , '/rest/ping.view'               => 'ping'
+        ( '/rest/getMusicDirectory.view' => 'getMusicDirectory'
+        , '/rest/getMusicFolders.view'   => 'getMusicFolders'
+        , '/rest/getRandomSongs.view'    => 'getRandomSongs'
+        , '/rest/getCoverArt.view'       => 'getCoverArt'
+        , '/rest/getStarred.view'        => 'getStarredSongs'
+        , '/rest/getIndexes.view'        => 'getIndexes'
+        , '/rest/getLicense.view'        => 'getLicense'
+        , '/rest/stream.view'            => 'stream'
+        , '/rest/ping.view'              => 'ping'
 
         // URIs for the HTML frontend
         , '/home'           => 'webHome'
@@ -1415,20 +1445,19 @@ function getPageMap() {
 
 // for testing
 function test() {
-    $meow['b'] = 3;
-    print_r($meow);
+    $a = array();
+    $a['b'] = 4;
+    print_r($a);
 
-    echo gg($meow['a']);
-    echo gg($meow['b']);
-    echo gg($meow['c']);
+    echo isset($q=$a['a']) ? $q : null;
+    echo isset($q=$a['b']) ? $q : null;
+    echo isset($q=$a['c']) ? $q : null;
+
+    print_r($a);
 
 }
 
-function gg(&$G) {
-    if (isset($G))
-        return $G;
-    return "NOPE";
-}
+
 
 
 /* because pspsub is one file, and we need to deal with lots of different
@@ -1514,7 +1543,35 @@ function streamCoverArt($id, $size) {
         return true;
     if (thumbFromFolderJPG($id, $size, $thumbPath))
         return true;
+    if (thumbFromID3($id, $size, $thumbPath))
+        return true;
     return false;
+}
+function thumbFromID3($id, $size, $thumbPath) {
+    $filename = dbGetFirstFileChild($id);
+    $art = getCoverArtFromTrack($filename);
+    if ($art) {
+        if ($size) {
+            generateThumb('', $id, $size, $thumbPath, $art['data']);
+        } else {
+            header('Content-Type: '.$art['image_mime']);
+            echo $art['data'];
+            exit;
+        }
+        return true;
+    }
+    return null;
+}
+function getCoverArtFromTrack($filename) {
+
+    // scan file for ID3 info
+    $getid3 = mp3lib(true);
+    $data = $getid3->analyze($filename);
+    getid3_lib::CopyTagsToComments($data); 
+
+    // return image tag, if it exists
+    return ¿A($data, 'comments', 'picture', 0);
+    
 }
 function thumbFromFile($thumbPath) {
     if (file_exists($thumbPath)) {
@@ -1537,10 +1594,20 @@ function thumbFromFolderJPG($id, $size, $thumbPath) {
     }
     return false;
 }
-function generateThumb($fname, $id, $size, $thumbPath) {
-    // load and resize image
-    list($width, $height) = getimagesize($fname);
-    $oldImage   = imagecreatefromjpeg($fname);
+function generateThumb($fname, $id, $size, $thumbPath, $imageString='_') {
+
+    // load image
+    if ($imageString=='_') {
+        $oldImage = imagecreatefromjpeg($fname);
+    } else {
+        $oldImage = imagecreatefromstring($imageString);
+    }
+
+    // get size
+    $width  = imagesx($oldImage);
+    $height = imagesy($oldImage);
+
+    // resample
     $newImage = imagecreatetruecolor($size, $size);
     imagecopyresampled($newImage, $oldImage, 0, 0, 0, 0, $size, $size, $width, $height);
 
@@ -1665,14 +1732,14 @@ function formatMusicDir($id, $folders, $files) {
 #     # #    # #    # #   ## #   ## # #   ## #    #
  #####   ####  #    # #    # #    # # #    #  ####
 
-function mp3lib() {
+function mp3lib($attachments=false) {
     static $getid3;
     if (isset($getid3)) {
         return $getid3;
     } else {
         require_once('GetID3/getid3.php');
         $getid3 = new getID3;
-        $getid3->option_save_attachments = false;
+        $getid3->option_save_attachments = $attachments;
         $getid3->option_tag_lyrics3 = false;
         set_time_limit(30);
         return $getid3;
@@ -1993,7 +2060,7 @@ function dbWriteIndexes($indexes) {
 
 function dbReadIndexes() {
     $db = dbConnect();
-    $data = $db->query($sql = 'SELECT id, name FROM tblDirectories WHERE isindex=1;');
+    $data = $db->query('SELECT id, name FROM tblDirectories WHERE isindex=1;');
     $result = array();
     foreach ($data as $row) {
         $id = $row['id'];
@@ -2103,6 +2170,14 @@ function dbGetSubFiles($id) {
     $q=$db->prepare('SELECT * FROM vwTracks WHERE parentid=? ORDER BY trackint, filename');
     $q->execute(array($id));
     $data = $q->fetchAll();
+    return $data;
+}
+
+function dbGetFirstFileChild($id) {
+    $db = dbConnect();
+    $q=$db->prepare('SELECT fullpath FROM tblTrackData WHERE parentid=? ORDER BY trackint, filename LIMIT 1');
+    $q->execute(array($id));
+    $data = $q->fetch(PDO::FETCH_COLUMN, 0);
     return $data;
 }
 
@@ -2297,15 +2372,15 @@ function filenameToTitle($filename, $artist) {
 
 function localize_GetID3_results($data, $dbinfo) {
     $new = array();
-    $new['Title'] =               ¿($data, 'comments', 'title', 0);
-    $new['Album'] =               ¿($data, 'comments', 'album', 0);
-    $new['Author'] =              ¿($data, 'comments', 'artist', 0);
-    $new['Track'] =               ¿($data, 'comments', 'track_number', 0);
-    $new['DurationFinal'] = round(¿($data, 'playtime_seconds'));
-    $new['Encoding'] =            ¿($data, 'audio', 'bitrate_mode');
-    $new['Bitrate'] =       round(¿($data, 'audio', 'bitrate')/1000);
-    $new['Sampling Rate'] =       ¿($data, 'audio', 'sample_rate');
-    $new['Filesize'] =            ¿($data, 'filesize');
+    $new['Title'] =               ¿($data['comments']['title'][0]);
+    $new['Album'] =               ¿($data['comments']['album'][0]);
+    $new['Author'] =              ¿($data['comments']['artist'][0]);
+    $new['Track'] =               ¿($data['comments']['track_number'][0]);
+    $new['DurationFinal'] = round(¿($data['playtime_seconds']));
+    $new['Encoding'] =            ¿($data['audio']['bitrate_mode']);
+    $new['Bitrate'] =       round(¿($data['audio']['bitrate'])/1000);
+    $new['Sampling Rate'] =       ¿($data['audio']['sample_rate']);
+    $new['Filesize'] =            ¿($data['filesize']);
 
     // if there is no album/author, we use the parentname/grandparentname
     $new['Album'] = $new['Album'] ?: $dbinfo['parentname'];
@@ -2353,7 +2428,7 @@ function ·() {}
 // [inverted question mark] is the greatest. You give it an array and a bunch of indexes,
 // and it will return the appropriate item if it exists,
 // otherwise it will return null
-function ¿($arr) {
+function ¿A($arr) {
     $keys = func_get_args();
     
     for ($i=1; $i<count($keys); $i++) {
@@ -2365,8 +2440,14 @@ function ¿($arr) {
     return $arr;
 }
 
+function ¿(&$value, $def=null) {
+    if (isset($value))
+        return $value;
+    return $def;
+}
+
 // this is similar to ¿, except it allows you to specify the default value
-function ¿D($default, $arr) {
+function ¿AD($default, $arr) {
     $keys = func_get_args();
     
     for ($i=2; $i<count($keys); $i++) {
