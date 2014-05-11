@@ -1420,15 +1420,15 @@ function forceRefresh() {
 function getPageMap() {
     return array
           // URIs for the RESTful API
-        ( '/rest/getMusicDirectory.view' => 'getMusicDirectory'
-        , '/rest/getMusicFolders.view'   => 'getMusicFolders'
-        , '/rest/getRandomSongs.view'    => 'getRandomSongs'
-        , '/rest/getCoverArt.view'       => 'getCoverArt'
-        , '/rest/getStarred.view'        => 'getStarredSongs'
-        , '/rest/getIndexes.view'        => 'getIndexes'
-        , '/rest/getLicense.view'        => 'getLicense'
-        , '/rest/stream.view'            => 'stream'
-        , '/rest/ping.view'              => 'ping'
+        ( '/rest/getMusicDirectory.view'  => 'getMusicDirectory'
+        , '/rest/getMusicFolders.view'    => 'getMusicFolders'
+        , '/rest/getRandomSongs.view'     => 'getRandomSongs'
+        , '/rest/getCoverArt.view'        => 'getCoverArt'
+        , '/rest/getStarred.view'         => 'getStarredSongs'
+        , '/rest/getIndexes.view'         => 'getIndexes'
+        , '/rest/getLicense.view'         => 'getLicense'
+        , '/rest/stream.view'             => 'stream'
+        , '/rest/ping.view'               => 'ping'
 
         // URIs for the HTML frontend
         , '/home'           => 'webHome'
@@ -1449,16 +1449,11 @@ function getPageMap() {
 
 // for testing
 function test() {
-    $a = array();
-    $a['b'] = 4;
-    print_r($a);
+    // deployGZB64();
 
-    echo isset($q=$a['a']) ? $q : null;
-    echo isset($q=$a['b']) ? $q : null;
-    echo isset($q=$a['c']) ? $q : null;
+    prepGZB64();
 
-    print_r($a);
-
+    // file_put_contents('this.testing.php', gzuncompress(base64_decode($b64main)));
 }
 
 
@@ -1542,13 +1537,22 @@ function streamMP3($id) {
 ### #    # #    #  ####  ######
 
 function streamCoverArt($id, $size) {
+
+    // the path of the thumbnail, which may or may not exist currently
     $thumbPath = "thumbs/id".$id."_size".$size.".jpg";
+
+    // check if the thumb already exists
     if (thumbFromFile($thumbPath))
         return true;
+
+    // check if there is a jpeg in the music folder
     if (thumbFromFolderJPG($id, $size, $thumbPath))
         return true;
+
+    // check if we can extract an image from an mp3
     if (thumbFromID3($id, $size, $thumbPath))
         return true;
+
     return false;
 }
 function thumbFromID3($id, $size, $thumbPath) {
@@ -1556,7 +1560,8 @@ function thumbFromID3($id, $size, $thumbPath) {
     $art = getCoverArtFromTrack($filename);
     if ($art) {
         if ($size) {
-            generateThumb('', $id, $size, $thumbPath, $art['data']);
+            $image = imagecreatefromstring($art['data']);
+            generateThumb($image, $size, $thumbPath);
         } else {
             header('Content-Type: '.$art['image_mime']);
             echo $art['data'];
@@ -1588,12 +1593,13 @@ function thumbFromFile($thumbPath) {
 }
 function thumbFromFolderJPG($id, $size, $thumbPath) {
     $dirPath = dbGetFolderPath($id);
-    $imgName = reFileExists($dirPath, ALBUMART_REGEXP);
+    $imgName = reFileFind($dirPath, ALBUMART_REGEXP);
     $fname   = $dirPath.'/'.$imgName;
 
     if ($imgName && file_exists($fname)) {
         if ($size) {
-            generateThumb($fname, $id, $size, $thumbPath);
+            $image = imagecreatefromjpeg($fname);
+            generateThumb($image, $size, $thumbPath);
         } else {
             thumbFromFile($fname);
         }
@@ -1601,22 +1607,7 @@ function thumbFromFolderJPG($id, $size, $thumbPath) {
     }
     return false;
 }
-function reFileExists($dir, $patt) {
-    if($open = opendir($dir))
-        while( ($file = readdir($open)) !== false ) {
-            if (preg_match($patt, $file))
-                return $file;
-        }
-    return false;
-}
-function generateThumb($fname, $id, $size, $thumbPath, $imageString='_') {
-
-    // load image
-    if ($imageString=='_') {
-        $oldImage = imagecreatefromjpeg($fname);
-    } else {
-        $oldImage = imagecreatefromstring($imageString);
-    }
+function generateThumb($oldImage, $size, $thumbPath) {
 
     // get size
     $width  = imagesx($oldImage);
@@ -1869,7 +1860,7 @@ function scanMP3Info($response) {
     foreach($tracks as $track) {
         $filepath = $track['fullpath'];
         $meta = getMP3Info($filepath);
-        $meta = localize_GetID3_results($meta, $track);
+        $meta = translate_GetID3_results($meta, $track);
         dbUpdateTrackInfo($filepath, $meta);
     }
     dbEndTrans();
@@ -1878,6 +1869,33 @@ function scanMP3Info($response) {
 
     // uncomment this if you want the JSON response to list the filenames scanned
     // $response->addProperty('mp3s' , $tracks );
+}
+
+function translate_GetID3_results($data, $dbinfo) {
+    $new = array();
+    $new['Filesize']      =       ¿($data['filesize']);
+    $new['Title']         =       ¿($data['comments']['title'][0]);
+    $new['Album']         =       ¿($data['comments']['album'][0]);
+    $new['Author']        =       ¿($data['comments']['artist'][0]);
+    $new['Track']         =       ¿($data['comments']['track_number'][0]);
+    $new['Sampling Rate'] =       ¿($data['audio']['sample_rate']);
+    $new['Encoding']      =       ¿($data['audio']['bitrate_mode']);
+    $new['Bitrate']       = round(¿($data['audio']['bitrate'])/1000);
+    $new['DurationFinal'] = round(¿($data['playtime_seconds']));
+
+    // if there is no album/author, we use the parentname/grandparentname
+    $new['Album']  = $new['Album'] ?: $dbinfo['parentname'];
+    $new['Author'] = $new['Author'] ?: $dbinfo['grandparentname'];
+
+    // if there is no Title, we use the filename (after processing it)
+    $new['Title'] = $new['Title'] ?: filenameToTitle($dbinfo['filename'], $new['Author']);
+
+    //how we deal with 'version' is weird
+    $new['Version'] = isset($data['id3v2'])?2:(isset($data['id3v1'])?1:0);
+
+    // this is an int version of the track number (for sorting)
+    $new['TrackInt'] = intval($new['Track']);
+    return $new;
 }
 
 function getMP3Info($filename) {
@@ -2385,31 +2403,13 @@ function filenameToTitle($filename, $artist) {
     return $filename;
 }
 
-function localize_GetID3_results($data, $dbinfo) {
-    $new = array();
-    $new['Title'] =               ¿($data['comments']['title'][0]);
-    $new['Album'] =               ¿($data['comments']['album'][0]);
-    $new['Author'] =              ¿($data['comments']['artist'][0]);
-    $new['Track'] =               ¿($data['comments']['track_number'][0]);
-    $new['DurationFinal'] = round(¿($data['playtime_seconds']));
-    $new['Encoding'] =            ¿($data['audio']['bitrate_mode']);
-    $new['Bitrate'] =       round(¿($data['audio']['bitrate'])/1000);
-    $new['Sampling Rate'] =       ¿($data['audio']['sample_rate']);
-    $new['Filesize'] =            ¿($data['filesize']);
-
-    // if there is no album/author, we use the parentname/grandparentname
-    $new['Album'] = $new['Album'] ?: $dbinfo['parentname'];
-    $new['Author'] = $new['Author'] ?: $dbinfo['grandparentname'];
-
-    // if there is no Title, we use the filename (after processing it)
-    $new['Title'] = $new['Title'] ?: filenameToTitle($dbinfo['filename'], $new['Author']);
-
-    //how we deal with 'version' is weird
-    $new['Version'] =       isset($data['id3v2'])?2:(isset($data['id3v1'])?1:0);
-
-    // this is an int version of the track number (for sorting)
-    $new['TrackInt'] =     intval($new['Track']);
-    return $new;
+function reFileFind($dir, $patt) {
+    if($open = opendir($dir))
+        while( ($file = readdir($open)) !== false ) {
+            if (preg_match($patt, $file))
+                return $file;
+        }
+    return false;
 }
 
 // true or false, as a string
@@ -2732,7 +2732,7 @@ function prepGZB64() {
     echo "<pre>";
     foreach(scandir($libFolder) as $name) {
         if (is_file($file = "$libFolder/$name"))
-            echo "\$file_gzb64['".$name."'] = '" . base64_encode(gzcompress(file_get_contents($file))) ."';\n";;
+            echo "\$file_gzb64['".$name."'] = '" . base64_encode(gzcompress(file_get_contents($file))) ."';\n";
     }
 }
 
