@@ -1542,7 +1542,7 @@ function streamCoverArt($id, $size) {
     $thumbPath = "thumbs/id".$id."_size".$size.".jpg";
 
     // check if the thumb already exists
-    if (thumbFromFile($thumbPath))
+    if (imageFromFile($thumbPath))
         return true;
 
     // check if there is a jpeg in the music folder
@@ -1555,34 +1555,7 @@ function streamCoverArt($id, $size) {
 
     return false;
 }
-function thumbFromID3($id, $size, $thumbPath) {
-    $filename = dbGetFirstFileChild($id);
-    $art = getCoverArtFromTrack($filename);
-    if ($art) {
-        if ($size) {
-            $image = imagecreatefromstring($art['data']);
-            generateThumb($image, $size, $thumbPath);
-        } else {
-            header('Content-Type: '.$art['image_mime']);
-            echo $art['data'];
-            exit;
-        }
-        return true;
-    }
-    return null;
-}
-function getCoverArtFromTrack($filename) {
-
-    // scan file for ID3 info
-    $getid3 = mp3lib(true);
-    $data = $getid3->analyze($filename);
-    getid3_lib::CopyTagsToComments($data); 
-
-    // return image tag, if it exists
-    return ¿A($data, 'comments', 'picture', 0);
-    
-}
-function thumbFromFile($thumbPath) {
+function imageFromFile($thumbPath) {
     if (file_exists($thumbPath)) {
         setContentType('JPEG');
         fpassthru(fopen($thumbPath, 'rb'));
@@ -1598,14 +1571,47 @@ function thumbFromFolderJPG($id, $size, $thumbPath) {
 
     if ($imgName && file_exists($fname)) {
         if ($size) {
+            // resample
             $image = imagecreatefromjpeg($fname);
             generateThumb($image, $size, $thumbPath);
         } else {
-            thumbFromFile($fname);
+            //passthru
+            imageFromFile($fname);
         }
         return true;
     }
     return false;
+}
+function thumbFromID3($id, $size, $thumbPath) {
+
+    // try to get artwork from track
+    $art = getCoverArtFromTrack($trackFilename=dbGetFirstFileChild($id));
+
+    if ($art) {
+        // parse and cache image data
+        $image = imagecreatefromstring($art['data']);
+        writeImage($image, dirname($trackFilename), "ID3cover.jpg");
+
+        // send image
+        if ($size)
+            generateThumb($image, $size, $thumbPath);
+        else
+            sendImage($image);
+
+        return true;
+    }
+    return false;
+}
+function getCoverArtFromTrack($filename) {
+
+    // scan file for ID3 info
+    $getid3 = mp3lib(true);
+    $data = $getid3->analyze($filename);
+    getid3_lib::CopyTagsToComments($data); 
+
+    // return image tag, if it exists
+    return ¿A($data, 'comments', 'picture', 0);
+    
 }
 function generateThumb($oldImage, $size, $thumbPath) {
 
@@ -1620,11 +1626,24 @@ function generateThumb($oldImage, $size, $thumbPath) {
     // save image
     if (!is_dir("thumbs"))
         mkdir("thumbs");
+
+    // cache thumb
     imagejpeg($newImage, $thumbPath, 95);
 
     // output image
+    sendImage($newImage);
+}
+function writeImage($image, $folder, $filename) {
+    if (is_writable($folder)) {
+        imagejpeg($image, "$folder/$filename", 100);
+        return true;
+    }
+    return false;
+}
+function sendImage($image) {
     setContentType('JPEG');
-    imagejpeg($newImage, null, 95);
+    imagejpeg($image, null, 95);
+    exit;
 }
 
 
@@ -1869,6 +1888,27 @@ function scanMP3Info($response) {
 
     // uncomment this if you want the JSON response to list the filenames scanned
     // $response->addProperty('mp3s' , $tracks );
+}
+
+function mp3lib($attachments=false) {
+    static $getid3;
+    if (isset($getid3)) {
+        return $getid3;
+    } else {
+        manual_require_once('GetID3/getid3.php');
+        $getid3 = new getID3;
+        $getid3->option_save_attachments = $attachments;
+        $getid3->option_tag_lyrics3 = false;
+        set_time_limit(30);
+        return $getid3;
+    }
+}
+
+function getID3Data($filename) {
+    $getid3 = mp3lib();
+    $data = $getid3->analyze($filename);
+    getid3_lib::CopyTagsToComments($data); 
+    return $data;
 }
 
 function translate_GetID3_results($data, $dbinfo) {
