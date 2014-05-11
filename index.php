@@ -1514,9 +1514,6 @@ function streamMP3($id) {
 
     // stream the file.
     if (STREAM_ALLOW_PARTIAL) {
-        // if (browser_info()['safari'])
-            // serveFilePartial($fname, null, 'audio/mpeg');
-        // else
             streamFile($fname, 'audio/mpeg');
     } else {
         $byteLength = filesize($fname);
@@ -1757,26 +1754,6 @@ function formatMusicDir($id, $folders, $files) {
 #     # #    # #    # #   ## #   ## # #   ## #    #
  #####   ####  #    # #    # #    # # #    #  ####
 
-function mp3lib($attachments=false) {
-    static $getid3;
-    if (isset($getid3)) {
-        return $getid3;
-    } else {
-        manual_require_once('GetID3/getid3.php');
-        $getid3 = new getID3;
-        $getid3->option_save_attachments = $attachments;
-        $getid3->option_tag_lyrics3 = false;
-        set_time_limit(30);
-        return $getid3;
-    }
-}
-
-function getID3Data($filename) {
-    $getid3 = mp3lib();
-    $data = $getid3->analyze($filename);
-    getid3_lib::CopyTagsToComments($data); 
-    return $data;
-}
 
 function scanIndexes() {
     global $OPT_MUSICDIR;
@@ -1878,7 +1855,7 @@ function scanMP3Info($response) {
     $tracks  = dbGetUnscannedTracks(OPT_SCAN_COUNTPERREFRESH);
     foreach($tracks as $track) {
         $filepath = $track['fullpath'];
-        $meta = getMP3Info($filepath);
+        $meta = getID3Data($filepath);
         $meta = translate_GetID3_results($meta, $track);
         dbUpdateTrackInfo($filepath, $meta);
     }
@@ -1938,39 +1915,23 @@ function translate_GetID3_results($data, $dbinfo) {
     return $new;
 }
 
-function getMP3Info($filename) {
-    return getID3Data($filename);
+function filenameToTitle($filename, $artist) {
+
+    // remove '.mp3' from the end
+    if (strlen($filename) < 5) return $filename;
+    $extPatt = '/'.preg_quote('.mp3').'$/i';
+    $filename = preg_replace($extPatt, '', $filename);
+
+    // remove the artist from the beginning
+    if (strlen($filename) < (strlen($artist)+3)) return $filename;
+    $artPatt = '/^'.preg_quote($artist).'/i';
+    $filename = preg_replace($artPatt, '', $filename);
+
+    // remove whitespace (etc) from start/end
+    $filename = trim($filename, "- \t\n\r\0\x0B");
+
+    return $filename;
 }
-
-function legacy_getMP3Info($filename) {
-    echo "$filename<br>";
-    $all = array();
-    $id3 = new ID3TagsReader();
-    $id3 = $id3->getTagsInfoProgressive($filename);
-    $meta = new mp3file($filename);
-    $meta = $meta->get_metadata();
-
-    apush('Title',  $id3, $all);
-    apush('Album',  $id3, $all);
-    apush('Author', $id3, $all);
-    apush('Track',  $id3, $all);
-    apush('Version', $id3, $all);
-    apush('LengthID3', $id3, $all);
-
-    apush('Filesize',      $meta, $all);
-    apush('Encoding',      $meta, $all);
-    apush('Bitrate',       $meta, $all);
-    apush('Sampling Rate', $meta, $all);
-    apush('Length',        $meta, $all);
-
-    $all['DurationFinal'] = max(intornull($all['Length']), intornull($all['LengthID3']));
-    $all['Track'] = intornull($all['Track']);
-
-    return $all;
-}
-
-
-
 
 
 
@@ -2425,24 +2386,6 @@ function intornull($a) {
     return intval($a);
 }
 
-function filenameToTitle($filename, $artist) {
-
-    // remove '.mp3' from the end
-    if (strlen($filename) < 5) return $filename;
-    $extPatt = '/'.preg_quote('.mp3').'$/i';
-    $filename = preg_replace($extPatt, '', $filename);
-
-    // remove the artist from the beginning
-    if (strlen($filename) < (strlen($artist)+3)) return $filename;
-    $artPatt = '/^'.preg_quote($artist).'/i';
-    $filename = preg_replace($artPatt, '', $filename);
-
-    // remove whitespace (etc) from start/end
-    $filename = trim($filename, "- \t\n\r\0\x0B");
-
-    return $filename;
-}
-
 function reFileFind($dir, $patt) {
     if($open = opendir($dir))
         while( ($file = readdir($open)) !== false ) {
@@ -2531,13 +2474,14 @@ processURI();
 
 
 
-###
- #  #    # #####   ####  #####  #####  ####
- #  ##  ## #    # #    # #    #   #   #
- #  # ## # #    # #    # #    #   #    ####
- #  #    # #####  #    # #####    #        #
- #  #    # #      #    # #   #    #   #    #
-### #    # #       ####  #    #   #    ####
+#
+#       # #####  #####    ##   #####  # ######  ####
+#       # #    # #    #  #  #  #    # # #      #
+#       # #####  #    # #    # #    # # #####   ####
+#       # #    # #####  ###### #####  # #           #
+#       # #    # #   #  #    # #   #  # #      #    #
+####### # #####  #    # #    # #    # # ######  ####
+
 
 // taken from http://stackoverflow.com/questions/11340276/make-mp3-seekable-php (modified)
 // originally this was a little broken for safari, but I fixed it (content-length header).
@@ -2637,127 +2581,6 @@ function streamFile($file, $content_type = 'application/octet-stream') {
     }
     exit;
 }
-
-
-
-
-
-// taken from http://www.php.net/manual/en/function.get-browser.php (comments) (modified)
-// not currently used
-function browser_info($agent=null) {
-  // Declare known browsers to look for
-  $known = array('chrome', 'msie', 'firefox', 'safari', 'opera', 'netscape',
-    'konqueror');
-
-  // Clean up agent and build regex that matches phrases for known browsers
-  // (e.g. "Firefox/2.0" or "MSIE 6.0" (This only matches the major and minor
-  // version numbers.  E.g. "2.0.0.6" is parsed as simply "2.0"
-  $agent = strtolower($agent ? $agent : $_SERVER['HTTP_USER_AGENT']);
-  $pattern = '#(?<browser>' . join('|', $known) .
-    ')[/ ]+(?<version>[0-9]+(?:\.[0-9]+)?)#';
-
-  // Find all phrases (or return empty array if none found)
-  if (!preg_match_all($pattern, $agent, $matches)) return array();
-
-  // Since some UAs have more than one phrase (e.g Firefox has a Gecko phrase,
-  // Opera 7,8 have a MSIE phrase), use the last one found (the right-most one
-  // in the UA).  That's usually the most correct.
-  $i = count($matches['browser'])-1;
-  $i = 0; // I changed this becaose Chrome lists Safari last.
-  return array($matches['browser'][$i] => $matches['version'][$i]);
-}
-
-// taken from https://github.com/pomle/php-serveFilePartial (modified)
-// this seems to work with safari (only)
-// not currently used
-function serveFilePartial($fileName, $fileTitle = null, $contentType = 'application/octet-stream')
-{
-    if( !file_exists($fileName) )
-        throw New \Exception(sprintf('File not found: %s', $fileName));
-
-    if( !is_readable($fileName) )
-        throw New \Exception(sprintf('File not readable: %s', $fileName));
-
-
-    ### Remove headers that might unnecessarily clutter up the output
-    header_remove('Cache-Control');
-    header_remove('Pragma');
-
-
-    ### Default to send entire file
-    $byteOffset = 0;
-    $byteLength = $byteEnd = $fileSize = filesize($fileName);
-
-    header('Accept-Ranges: bytes', true);
-    header(sprintf('Content-Type: %s', $contentType), true);
-
-    if( $fileTitle )
-        header(sprintf('Content-Disposition: attachment; filename="%s"', $fileTitle));
-
-    ### Parse Content-Range header for byte offsets, looks like "bytes=11525-" OR "bytes=11525-12451"
-    if( isset($_SERVER['HTTP_RANGE']) && preg_match('%bytes=(\d+)-(\d+)?%i', $_SERVER['HTTP_RANGE'], $match) )
-    {
-        ### Offset signifies where we should begin to read the file
-        $byteOffset = (int)$match[1];
-
-        ### Length is for how long we should read the file according to the browser, and can never go beyond the file size
-        if( isset($match[2]) )
-            $byteEnd = min( (int)$match[2], $byteEnd);
-
-        header("HTTP/1.1 206 Partial content");
-        header(sprintf('Content-Range: bytes %d-%d/%d', $byteOffset, $byteEnd, $fileSize));  ### Contrary to the original comment (below), the -1 actually broke functionality. -Scott
-        // header(sprintf('Content-Range: bytes %d-%d/%d', $byteOffset, $byteLength - 1, $fileSize));  ### Decrease by 1 on byte-length since this definition is zero-based index of bytes being sent
-    }
-
-    $byteRange = $byteEnd - $byteOffset;
-
-    header(sprintf('Content-Length: %d', $byteRange));
-
-    header(sprintf('Expires: %s', date('D, d M Y H:i:s', time() + 60*60*24*90) . ' GMT'));
-
-
-    $buffer = '';   ### Variable containing the buffer
-    $bufferSize = 512 * 16; ### Just a reasonable buffer size
-    $bytePool = $byteRange; ### Contains how much is left to read of the byteRange
-
-    if( !$handle = fopen($fileName, 'r') )
-        throw New \Exception(sprintf("Could not get handle for file %s", $fileName));
-
-    if( fseek($handle, $byteOffset, SEEK_SET) == -1 )
-        throw New \Exception(sprintf("Could not seek to byte offset %d", $byteOffset));
-
-
-    while( $bytePool > 0 )
-    {
-        $chunkSizeRequested = min($bufferSize, $bytePool); ### How many bytes we request on this iteration
-
-        ### Try readin $chunkSizeRequested bytes from $handle and put data in $buffer
-        $buffer = fread($handle, $chunkSizeRequested);
-
-        ### Store how many bytes were actually read
-        $chunkSizeActual = strlen($buffer);
-
-        ### If we didn't get any bytes that means something unexpected has happened since $bytePool should be zero already
-        if( $chunkSizeActual == 0 )
-        {
-            ### For production servers this should go in your php error log, since it will break the output
-            trigger_error('Chunksize became 0', E_USER_WARNING);
-            break;
-        }
-
-        ### Decrease byte pool with amount of bytes that were read during this iteration
-        $bytePool -= $chunkSizeActual;
-
-        ### Write the buffer to output
-        print $buffer;
-
-        ### Try to output the data to the client immediately
-        flush();
-    }
-
-    exit();
-}
-
 
 function manual_require_once($libPath) {
     if (!include_once($libPath)) {
