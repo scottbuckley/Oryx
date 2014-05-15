@@ -7,16 +7,22 @@
 #     # #    # #   ## #      # #    # #    # #   #  #    #   #   # #    # #   ##
  #####   ####  #    # #      #  ####   ####  #    # #    #   #   #  ####  #    #
 
-$OPT_SQL_FILENAME = 'sub.db';
-$OPT_MUSICDIR = '/home2/buckly/nonpublic/submusic2/'; // with trailing slash !IMPORTANT!
+define('OPT_SQL_FILENAME', 'oryx.db');
+
+// currently there can only be one music folder. OPT_MUSICDIR should be the unix path (from root)
+// to this folder. It is VERY important that this path has a trailing slash.
+define('OPT_MUSICDIR', '/home2/buckly/nonpublic/submusic2/');
+
 $OPT_LETTERGROUPS = array('A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','XYZ', '#');
 $OPT_NONALPHALETTERGROUP = '#';
-$OPT_ARTICLES = array('The');
 
-// disable this if you want phpsub to require no authentication. Not recommended if your server is public-facing.
+// articles ignored when sorting indexes. Space-separated words.
+define('OPT_ARTICLES', 'The');
+
+// disable this if you want oryx to require no authentication. Not recommended if your server is public-facing.
 define('REQUIRE_AUTH', false);
 
-// Allowing phpsub to serve a partial file is required for being able to skip through a track (past the buffer).
+// Allowing oryx to serve a partial file is required for being able to skip through a track (past the buffer).
 // Also Safari won't even show playing progress or time without partial file service. Turn this off, however, if
 // you want to decrease the load on your server, because partial file service uses more resources than otherwise.
 define('STREAM_ALLOW_PARTIAL', true);
@@ -28,6 +34,8 @@ define('PLAYBACK_PRELOAD', true);
 // art backdrop
 define('ALBUMART_BACKDROP', true);
 
+// this sets the webpage title for all responses.
+define('FRONT_TITLE', 'Oryx');
 
 // this defines which images will be accepted as cover art (currently only jpeg is supported)
 define('ALBUMART_REGEXP', '/^(id3)?(folder|cover|album)(art)?\.(jpg|jpeg)$/i');
@@ -50,7 +58,7 @@ define('IMG_ICON', 'image/gif;base64,R0lGODlhDAAMAJECAAAAAJaWlv///wAAACH5BAEAAAI
 
 
 
-// the main page for phpsub's web interface. below you see only what is common to all pages.
+// the main page for oryx's web interface. below you see only what is common to all pages.
 // the three functions provided $style, $script, and $body will be called at the appropriate times
 // to insert these sections. If you specify no arguments, the default (authorised) page is rendered.
 function webHome($style='htmlStyle', $script='htmlScript', $body='htmlBody') { ?>
@@ -60,9 +68,6 @@ function webHome($style='htmlStyle', $script='htmlScript', $body='htmlBody') { ?
         <meta charset="UTF-8">
 
         <!-- EXTERNAL JS  -->
-        <!-- // <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"            ></script> -->
-        <!-- // <script src="http://netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"          ></script> -->
-        
         <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.min.js"                  ></script>
         <script src="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.1.1/js/bootstrap.min.js" ></script>
         <script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.6.0/underscore-min.js"       ></script>
@@ -71,8 +76,6 @@ function webHome($style='htmlStyle', $script='htmlScript', $body='htmlBody') { ?
         <script type="text/javascript">!function(a){var b,c=a();a.fn.sortable=function(d){var e=String(d);return d=a.extend({connectWith:!1,placeholder:null,dragImage:null},d),this.each(function(){if("reload"===e&&a(this).children(d.items).off("dragstart.h5s dragend.h5s selectstart.h5s dragover.h5s dragenter.h5s drop.h5s"),/^enable|disable|destroy$/.test(e)){var f=a(this).children(a(this).data("items")).attr("draggable","enable"===e);return void("destroy"===e&&(a(this).off("sortupdate"),f.add(this).removeData("connectWith items").off("dragstart.h5s dragend.h5s selectstart.h5s dragover.h5s dragenter.h5s drop.h5s").off("sortupdate")))}var g=a(this).data("opts");"undefined"==typeof g?a(this).data("opts",d):d=g;var h,i,j,k,l=a(this).children(d.items),m=null===d.placeholder?a("<"+(/^ul|ol$/i.test(this.tagName)?"li":"div")+' class="sortable-placeholder">'):a(d.placeholder).addClass("sortable-placeholder");l.find(d.handle).mousedown(function(){h=!0}).mouseup(function(){h=!1}),a(this).data("items",d.items),c=c.add(m),d.connectWith&&a(d.connectWith).add(this).data("connectWith",d.connectWith),l.attr("draggable","true").on("dragstart.h5s",function(c){if(c.stopImmediatePropagation(),d.handle&&!h)return!1;h=!1;var e=c.originalEvent.dataTransfer;e.effectAllowed="move",e.setData("Text","dummy"),d.dragImage&&e.setDragImage&&e.setDragImage(d.dragImage,0,0),i=(b=a(this)).addClass("sortable-dragging").index(),j=a(this).parent()}).on("dragend.h5s",function(){b&&(b.removeClass("sortable-dragging").show(),c.detach(),k=a(this).parent(),(i!==b.index()||j!==k)&&b.parent().triggerHandler("sortupdate",{item:b,oldindex:i,startparent:j,endparent:k}),b=null)}).not("a[href], img").on("selectstart.h5s",function(){return d.handle&&!h?!0:(this.dragDrop&&this.dragDrop(),!1)}).end().add([this,m]).on("dragover.h5s dragenter.h5s drop.h5s",function(e){if(!l.is(b)&&d.connectWith!==a(b).parent().data("connectWith"))return!0;if("drop"===e.type)return e.stopPropagation(),c.filter(":visible").after(b),b.trigger("dragend.h5s"),!1;if(e.preventDefault(),e.originalEvent.dataTransfer.dropEffect="move",l.is(this)){var f=b.outerHeight(),g=a(this).outerHeight();if(d.forcePlaceholderSize&&m.height(f),g>f){var h=g-f,i=a(this).offset().top;if(m.index()<a(this).index()&&e.originalEvent.pageY<i+h)return!1;if(m.index()>a(this).index()&&e.originalEvent.pageY>i+g-h)return!1}b.hide(),a(this)[m.index()<a(this).index()?"after":"before"](m),c.not(m).detach()}else c.is(this)||a(this).children(d.items).length||(c.detach(),a(this).append(m));return!1})})}}($);</script>
 
         <!-- EXTERNAL CSS -->
-        <!-- <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css"> -->
-        <!-- <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css"  > -->
         <link rel="stylesheet" href="//fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900"               >
         <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.1.1/css/bootstrap.min.css" >
         <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/font-awesome/4.0.3/css/font-awesome.min.css"   >
@@ -80,7 +83,7 @@ function webHome($style='htmlStyle', $script='htmlScript', $body='htmlBody') { ?
         <link rel="icon" type="img/ico" href="data:<?php echo IMG_ICON; ?>">
 <?php $style();  ?>
 <?php $script(); ?>
-        <title>phpsub</title>
+        <title><?php echo FRONT_TITLE; ?></title>
     </head>
     <body>
 <?php $body(); ?>
@@ -118,7 +121,7 @@ function htmlBody() { ?>
 function htmlLoginForm() { ?>
     <div class="loginContainer">
       <form class="form-signin" method="post">
-        <h2 class="form-signin-heading">Please sign in to phpsub</h2>
+        <h2 class="form-signin-heading">Please sign in to oryx</h2>
         <input type="text"     class="form-control" placeholder="Username" name="frmUsr" required autofocus>
         <input type="password" class="form-control" placeholder="Password" name="frmPwd" required>
         <?php postLoginFailAlert(); ?>
@@ -203,6 +206,9 @@ function htmlStyle() { ?>
                 right: 300px;
                 bottom: 40px;
 
+                background-size: cover;
+                background-position: center center;
+
                 padding: 0px 0px 0px;
             }
             .centrePanel {
@@ -250,7 +256,8 @@ function htmlStyle() { ?>
             }
             div.indexItem {
                 font-size: 10pt;
-                padding-left: 12px;
+                padding-left: 18px;
+                text-indent: -6px;
             }
             div.indexItem:hover {
                 background-color: #eaeaea;
@@ -425,12 +432,14 @@ function htmlStyle() { ?>
                 font-weight: 400;
             }
             #playlistTable .trackTR {
-                border: 1px solid transparent;
                 cursor: move;
+                box-sizing: border-box;
             }
             #playlistTable .sortable-placeholder {
                 border: 1px dashed #CCC;
-                background: none;
+            }
+            #playlistTable .sortable-dragging {
+                opacity: 0.75;
             }
             #playlistTable .pliDuration {
                 text-align: right;
@@ -509,7 +518,7 @@ function htmlScript() { ?>
                 // make the playlist sortable
                 $('#playlistTable tbody').sortable({
                       items                : 'tr'
-                    , placeholder          : '<tr><td colspan="3">&nbsp;</td></tr>'
+                    , placeholder          : '<tr><td colspan="4">&nbsp;</td></tr>'
                     , forcePlaceholderSize : true
                 });
 
@@ -604,9 +613,9 @@ function htmlScript() { ?>
                 newTR.addClass('playingTrack');
 
                 // play the track.
-                var newTrack = newTR.attr('subid');
+                var newTrack = newTR.attr('oryxid');
 
-                if (altAudio!=null && altAudio.attr('subid') == newTrack) {
+                if (altAudio!=null && altAudio.attr('oryxid') == newTrack) {
                     console.log('Playing. Preloaded.');
 
                     // set the (background loaded) audio element's id to htmlAudio, for later access
@@ -648,7 +657,7 @@ function htmlScript() { ?>
                 var cur = $('.trackTR.playingTrack').first();
                 cur = cur.next('.trackTR');
                 if (cur) {
-                    return cur.attr('subid');
+                    return cur.attr('oryxid');
                 }
                 return 0;
             }
@@ -663,7 +672,7 @@ function htmlScript() { ?>
                     , preload  : 'auto'
                     , autoplay : 'false'
                     , controls : 'controls'
-                    , subid    : nextid
+                    , oryxid    : nextid
                 });
 
                 // make sure that the new audio element doens't play in the background.
@@ -681,7 +690,7 @@ function htmlScript() { ?>
                 var dNewTrackTR = $('<tr>', {
                       class : 'trackTR'
                     , id    : 'track'+tid
-                    , subid : tid
+                    , oryxid : tid
                     , html  : snippetTrackLoading
                 });
 
@@ -717,12 +726,13 @@ function htmlScript() { ?>
             }
 
             function loadDirectory(dirId) {
+                // reset the background to plain white
+                $(".centrePanel").stop(true).css('opacity', '1.0');
                 $(".centrePanelWrapper").css('background-image', 'none');
-                $(".centrePanel").css('opacity', '1.0');
 
+                // populate the centre panel with the directory contents
                 $(".centrePanel")
                     .html(snippetLoader)
-
                     .load("?/web/directory?id=" + dirId, function(d,s,r) {
 
                         // report that things didn't go well
@@ -730,61 +740,55 @@ function htmlScript() { ?>
                             $(this).html(snippetErrorLoading);
                         }
 
-                        // clicking on titles plays track
+                        // add click behaviour to tracks
                         $("tr.track").click(function() {
-                            var id = $(this).attr("subid");
+                            var id = $(this).attr("oryxid");
                             selectTrack(id);
                         });
 
-                        // turning directory rows into links
+                        // add click behaviour to subdirectories
                         $(".dirtable tr").click(lc(function() {
-                            window.location = "#/" + $(this).attr('subid');
+                            window.location = "#/" + $(this).attr('oryxid');
                         }));
 
-                        // the 'add all' button
+                        // add click behaviour to 'add all' button
                         $("#titleButton button").click(function() {
                             $("tr.track").each(function() {
-                                var id = $(this).attr("subid");
+                                var id = $(this).attr("oryxid");
                                 selectTrack(id);
                             });
                         });
-                        prepButtons("#titleButton button");
+                        prepButtons("#titleButton button"); // button focus fix
 
-                        // broken images
+                        // album covers
+                        $("img.dirListCover").load(function() {
+                            $(this).fadeIn();
+                        });
+
+                        // album covers (when not found)
                         $("img.dirListCover").error(function() {
                             var b = $(this).parent();
                             $(this).replaceWith('<div class="imgerror">&#xf025;</div>');
                             b.find('div.imgerror').fadeIn();
                         });
-                        $("img.dirListCover").load(function() {
-                            $(this).fadeIn();
-                        });
 
                         // background image
-                        if (ALBUMART_BACKDROP) {
-                            $.get('?/rest/getCoverArt.view?id='+ dirId + '&size=100', function() {
-                                //success
-                                centrePanelLoadImage(dirId);
-                            }).fail(function() {
-                                //failure
-                            });
-                        }
+                        if (ALBUMART_BACKDROP)
+                            centrePanelLoadImage(dirId);
 
                     });
             }
 
             function centrePanelLoadImage(dirId) {
-                $(".centrePanelWrapper")
-                    .css('background-size'     , 'cover')
-                    .css('background-position' , 'center center')
-                    .css('background-image'    , 'url(?/rest/getCoverArt.view?id='+ dirId +')');
+                var imgSrc = '?/rest/getCoverArt.view?id='+ dirId;
 
-                $(".centrePanel")
-                    .stop(true)
-                    .css('opacity', '1.0');
-
-                $(".centrePanel")
-                    .animate({'opacity':'0.95'}, 5000);
+                // set the backgroud-image, and also an invisible image, so we can track when the image
+                // has finished loading. When it has finished loading, make the background-image visible.
+                $('.centrePanelWrapper').css('background-image', 'url('+imgSrc+')');
+                $('<img/>').attr('src', imgSrc).load(function() {
+                    $('.centrePanel').animate({'opacity':'0.95'}, 5000);
+                    $(this).remove();
+                });
             }
 
             function loadIndexes() {
@@ -849,7 +853,7 @@ function webDirectory() {
     $folders     = dbGetSubFolders($id);
     $files       = dbGetSubFiles($id);
     $grandparent = dbGetParent($id);
-    $parentName = §(¿A($folders, 0, 'parentname') ?: ¿A($files, 0, 'parentname'));
+    $parentName  = dbgetFolderName($id); //§(¿A($folders, 0, 'parentname') ?: ¿A($files, 0, 'parentname'));
 
 
     // grandparent link
@@ -883,7 +887,7 @@ function webDirectory() {
         foreach ($folders as $folder) {
             $name = §($folder['name']);
             $id   =   $folder['id'];
-            »("<tr subid=`$id`>
+            »("<tr oryxid=`$id`>
                 <td><img class=`dirListCover` src=`?/rest/getCoverArt.view?id=$id&size=100`></td>
                 <td><a href=`#/$id`>$name</a></td>
             </tr>");
@@ -913,7 +917,7 @@ function webDirectory() {
             $album    = §($file['album']);
             $duration = minSecs($file['duration']);
 
-            »("<tr class=`track` subid=`$id`>
+            »("<tr class=`track` oryxid=`$id`>
                 <td>$track</td>
                 <td>$title</td>
                 <td>$artist</td>
@@ -979,8 +983,8 @@ function badAuth($requestPath) {
 function checkAuth() {
 
     // check cookie
-    $cookie_un = ¿($_COOKIE['phpsub_auth']['un']);
-    $cookie_pw = ¿($_COOKIE['phpsub_auth']['pw']);
+    $cookie_un = ¿($_COOKIE['oryx_auth']['un']);
+    $cookie_pw = ¿($_COOKIE['oryx_auth']['pw']);
 
     if ($cookie_un && $cookie_pw)
         if(dbCheckUserPass($cookie_un, unhex($cookie_pw)))
@@ -1016,12 +1020,12 @@ function checkAuth() {
 
 function makeAuthCookie($un, $pw) {
     setcookie(
-          'phpsub_auth[un]'
+          'oryx_auth[un]'
         , $un
         , TIME_2033
     );
     setcookie(
-          'phpsub_auth[pw]'
+          'oryx_auth[pw]'
         , hex($pw)
         , TIME_2033
     );
@@ -1033,12 +1037,12 @@ function makeAuthCookie($un, $pw) {
 function authSignOut() {
     // delete the cookies
     setcookie(
-          'phpsub_auth[un]'
+          'oryx_auth[un]'
         , ''
         , time()-1
     );
     setcookie(
-          'phpsub_auth[pw]'
+          'oryx_auth[pw]'
         , ''
         , time()-1
     );
@@ -1078,10 +1082,17 @@ function my_hex2bin($h) {
 #     # #      #    # #    # #    # #      #    #
  #####  ###### #    #  ####   ####  ######  ####
 
+function echoRO($r) {
+    echo isset($s)
+        ? $r->render($s)
+        : $r->render(  );
+}
+
 class ResponseObject {
     private $name;
     public $properties;
     private $children;
+
 
     public function ResponseObject($name, $props=array(), $children=array()) {
         $this->name       = $name;
@@ -1136,7 +1147,7 @@ class ResponseObject {
         return '<?xml version="1.0" encoding="UTF-8"?>'.$res->toXML(0);
     }
 
-    private function toJSON($indent=0, $printName=true) {
+    public function toJSON($indent=0, $printName=true) {
         $name  = $this->name;
         $props = $this->properties;
         $chren = $this->flatChildren();
@@ -1182,16 +1193,6 @@ class ResponseObject {
             }
         }
 
-        // print children, without flattening children into lists
-        // if (is_array($chren)) {
-        //     foreach($chren as $child) {
-        //         $childJSON = $child->toJSON($indent+1);
-
-        //         $pref = $this->commaStart($count++, "\n");
-        //         $newJSON .= "$pref$childJSON";
-        //     }
-        // }
-
         $newJSON .="\n$pind}";
 
         return $newJSON;
@@ -1207,7 +1208,7 @@ class ResponseObject {
         return $flatList;
     }
 
-    private function toXML($indent=0) {
+    public function toXML($indent=0) {
         $name  = $this->name;
         $props = $this->properties;
         $chren = $this->children;
@@ -1223,14 +1224,20 @@ class ResponseObject {
         }
 
         //children
+        // we don't use indentation if the child is a responsestring.
+        if (isset($chren[0]) && $chren[0] instanceof ResponseString) {
+            $newXML .= '>'.$chren[0]->toXML(0)."</$name>";
+        }
         // we don't use the /> notation if there are children OR there are no properties.
-        if ((is_array($chren) && !empty($chren)) || empty($props)) {
+        else if ((is_array($chren) && !empty($chren)) || empty($props)) {
             $newXML .= ">";
             foreach ($chren as $child) {
                 $newXML .= $child->toXML($indent+1);
             }
             $newXML .= "\n$ind</$name>";
-        } else {
+        }
+        // we use /> notation if there are no children and there are properties
+        else {
             $newXML .= "/>";
         }
 
@@ -1256,6 +1263,23 @@ class ResponseObject {
         }
     }
 
+}
+
+class ResponseString extends ResponseObject {
+    private $contents;
+
+    public function ResponseString($contents) {
+        $this->contents = $contents;
+    }
+
+    public function render()     { return $this->contents; }
+    public function renderXML()  { return $this->contents; }
+    public function toXML()      { return $this->contents; }
+    public function renderJSON() { return $this->contents; }
+    public function toJSON($indent)     {
+        $ind = str_repeat('  ', $indent);
+        return $ind.'"content": "'.$this->contents.'"';
+    }
 }
 
 
@@ -1289,21 +1313,92 @@ function getTemplate($templateName) {
 
 
 
-######                            #    ######  ###
-#     # ######  ####  #####      # #   #     #  #
-#     # #      #        #       #   #  #     #  #
-######  #####   ####    #      #     # ######   #
-#   #   #           #   #      ####### #        #
-#    #  #      #    #   #      #     # #        #
-#     # ######  ####    #      #     # #       ###
+ #####                                                    #    ######  ###
+#     # #    # #####   ####   ####  #    # #  ####       # #   #     #  #
+#       #    # #    # #      #    # ##   # # #    #     #   #  #     #  #
+ #####  #    # #####   ####  #    # # #  # # #         #     # ######   #
+      # #    # #    #      # #    # #  # # # #         ####### #        #
+#     # #    # #    # #    # #    # #   ## # #    #    #     # #        #
+ #####   ####  #####   ####   ####  #    # #  ####     #     # #       ###
+
+// the following commands are still not implemented
+// http://www.subsonic.org/pages/api.jsp#getArtists
+// http://www.subsonic.org/pages/api.jsp#getArtist
+// http://www.subsonic.org/pages/api.jsp#getAlbum
+// http://www.subsonic.org/pages/api.jsp#getSong
+// http://www.subsonic.org/pages/api.jsp#getVideos
+// http://www.subsonic.org/pages/api.jsp#getAlbumList
+// http://www.subsonic.org/pages/api.jsp#getAlbumList2
+// http://www.subsonic.org/pages/api.jsp#getSongsByGenre
+// http://www.subsonic.org/pages/api.jsp#getNowPlaying
+// http://www.subsonic.org/pages/api.jsp#getStarred2
+// http://www.subsonic.org/pages/api.jsp#search
+// http://www.subsonic.org/pages/api.jsp#search2
+// http://www.subsonic.org/pages/api.jsp#search3
+// http://www.subsonic.org/pages/api.jsp#getPlaylists
+// http://www.subsonic.org/pages/api.jsp#getPlaylist
+// http://www.subsonic.org/pages/api.jsp#createPlaylist
+// http://www.subsonic.org/pages/api.jsp#updatePlaylist
+// http://www.subsonic.org/pages/api.jsp#deletePlaylist
+// http://www.subsonic.org/pages/api.jsp#download
+// http://www.subsonic.org/pages/api.jsp#hls
+// http://www.subsonic.org/pages/api.jsp#getLyrics
+// http://www.subsonic.org/pages/api.jsp#getAvatar
+// http://www.subsonic.org/pages/api.jsp#star
+// http://www.subsonic.org/pages/api.jsp#unstar
+// http://www.subsonic.org/pages/api.jsp#setRating
+// http://www.subsonic.org/pages/api.jsp#scrobble
+// http://www.subsonic.org/pages/api.jsp#getShares
+// http://www.subsonic.org/pages/api.jsp#createShare
+// http://www.subsonic.org/pages/api.jsp#updateShare
+// http://www.subsonic.org/pages/api.jsp#deleteShare
+// http://www.subsonic.org/pages/api.jsp#getPodcasts
+// http://www.subsonic.org/pages/api.jsp#refreshPodcasts
+// http://www.subsonic.org/pages/api.jsp#createPodcastChannel
+// http://www.subsonic.org/pages/api.jsp#deletePodcastChannel
+// http://www.subsonic.org/pages/api.jsp#deletePodcastEpisode
+// http://www.subsonic.org/pages/api.jsp#downloadPodcastEpisode
+// http://www.subsonic.org/pages/api.jsp#jukeboxControl
+// http://www.subsonic.org/pages/api.jsp#getInternetRadioStations
+// http://www.subsonic.org/pages/api.jsp#getChatMessages
+// http://www.subsonic.org/pages/api.jsp#addChatMessage
+// http://www.subsonic.org/pages/api.jsp#getUser
+// http://www.subsonic.org/pages/api.jsp#getUsers
+// http://www.subsonic.org/pages/api.jsp#createUser
+// http://www.subsonic.org/pages/api.jsp#updateUser
+// http://www.subsonic.org/pages/api.jsp#deleteUser
+// http://www.subsonic.org/pages/api.jsp#changePassword
+// http://www.subsonic.org/pages/api.jsp#getBookmarks
+// http://www.subsonic.org/pages/api.jsp#createBookmark
+// http://www.subsonic.org/pages/api.jsp#deleteBookmark
 
 
-function invalidPage() {
-    header('HTTP/1.1 404 Not Found');
-    setContentType('HTML');
-    echo getTemplate('NOTFOUND');
+// http://www.subsonic.org/pages/api.jsp#ping
+function ping() {
+    $echoRO( new ResponseObject('') );
 }
 
+// http://www.subsonic.org/pages/api.jsp#getLicense
+function getLicense() {
+    echoRO(new ResponseObject('license', array(
+          'valid' => 'true'
+        , 'email' => 'oryx@buck.ly'
+        , 'key'   => 'ABC123DEF'
+        , 'date'  => date('c')
+    )));
+}
+
+// http://www.subsonic.org/pages/api.jsp#getMusicFolders
+function getMusicFolders() {
+    echoRO(new ResponseObject('musicFolders', null, 
+        new ResponseObject('musicFolder', array(
+              'id' => 0
+            , 'name' => 'Music'
+        ))
+    ));
+}
+
+// http://www.subsonic.org/pages/api.jsp#getIndexes
 function getIndexes() {
     $indexes = dbGetIndexes();
     $indexes = splitIntoSubarrays($indexes);
@@ -1312,18 +1407,34 @@ function getIndexes() {
     echo $response->render();
 }
 
+// http://www.subsonic.org/pages/api.jsp#getMusicDirectory
 function getMusicDirectory() {
-    $id = $_REQUEST['id'];
+    $id      = $_REQUEST['id'];
+    $dirname = dbGetFolderName($id);
     $folders = dbGetSubFolders($id);
-    $files = dbGetSubFiles($id);
+    $files   = dbGetSubFiles($id);
 
-    $response = formatMusicDir($id, $folders, $files);
+    $response = new ResponseObject('directory', array(
+          'id'   => $id
+        , 'name' => $dirname
+        ));
+    formatMusicDir($id, $folders, $files, $response);
     echo $response->render();
 }
 
+// http://www.subsonic.org/pages/api.jsp#getGenres
+function getGenres() {
+    echoRO(new ResponseObject('genres', array(), 
+        new ResponseObject('genre'
+            , array('songCount' => dbGetTrackCount())
+            , new ResponseString('Everything')
+        )
+    ));
+}
+
+// http://www.subsonic.org/pages/api.jsp#getCoverArt
 function getCoverArt() {
     $id = $_REQUEST['id'];
-    // $size = nonzero($_REQUEST['size'], 100);
     $size = ¿($_REQUEST['size']);
     if (!streamCoverArt($id, $size)) {
         header('HTTP/1.1 404 Not Found');
@@ -1332,41 +1443,38 @@ function getCoverArt() {
 
 }
 
-function getMusicFolders() {
-    $response = new ResponseObject('musicFolders', null, 
-        new ResponseObject('musicFolder', array(
-              'id' => 0
-            , 'name' => 'Music'
-        )));
-
-    echo $response->render();
-}
-
-function getRandomSongs() {
-    $response = new ResponseObject('randomSongs');
-    echo $response->render();
-}
-
-function getStarredSongs() {
-    $response = new ResponseObject('starred');
-    echo $response->render();
-}
-
-function ping() {
-    $response = new ResponseObject('');
-    echo $response->render();
-}
-
-function getLicense() {
-    $response = new ResponseObject('license', array('valid' => 'true'));
-    echo $response->render();
-}
-
+// http://www.subsonic.org/pages/api.jsp#stream
 function stream() {
-    setContentType('MPEG');
     $id = $_REQUEST['id'];
     streamMP3($id);
 }
+
+
+// incomplete
+
+// http://www.subsonic.org/pages/api.jsp#getRandomSongs
+function getRandomSongs() {
+    echoRO( new ResponseObject('randomSongs') );
+}
+
+// http://www.subsonic.org/pages/api.jsp#getStarred
+function getStarred() {
+    echoRO( new ResponseObject('starred') );
+}
+
+
+
+
+
+
+#######                           #    ######  ###
+#     # #####  #   # #    #      # #   #     #  #
+#     # #    #  # #   #  #      #   #  #     #  #
+#     # #    #   #     ##      #     # ######   #
+#     # #####    #     ##      ####### #        #
+#     # #   #    #    #  #     #     # #        #
+####### #    #   #   #    #    #     # #       ###
+
 
 function createDB() {
     dbCreateTables();
@@ -1380,11 +1488,10 @@ function scanNewFiles() {
 }
 
 function restBadAuth() {
-    $response = new ResponseObject('error', array(
+    echoRO(new ResponseObject('error', array(
           'code'    => 40
-        , 'message' => 'Wrong username or password'
-    ));
-    echo $response->render('failed');
+        , 'message' => 'Wrong username or password.'
+    )), 'failed');
 }
 
 function scanTracks() {
@@ -1401,6 +1508,14 @@ function scanTracks() {
     // echo $response->renderJSON(false);
 }
 
+// for testing
+function test() {
+    echoRO(new ResponseObject('error', array(
+          'code'    => 40
+        , 'message' => 'Wrong username or passwddord.'
+    )), 'failed');
+}
+
 
 
  
@@ -1414,7 +1529,7 @@ function scanTracks() {
 
 function forceRefresh() {
     header('Location: '.parse_url($_SERVER['REQUEST_URI'])['path']);
-    die;
+    exit;
 }
 
 function getPageMap() {
@@ -1424,9 +1539,10 @@ function getPageMap() {
         , '/rest/getMusicFolders.view'    => 'getMusicFolders'
         , '/rest/getRandomSongs.view'     => 'getRandomSongs'
         , '/rest/getCoverArt.view'        => 'getCoverArt'
-        , '/rest/getStarred.view'         => 'getStarredSongs'
+        , '/rest/getStarred.view'         => 'getStarred'
         , '/rest/getIndexes.view'         => 'getIndexes'
         , '/rest/getLicense.view'         => 'getLicense'
+        , '/rest/getGenres.view'          => 'getGenres'
         , '/rest/stream.view'             => 'stream'
         , '/rest/ping.view'               => 'ping'
 
@@ -1447,19 +1563,7 @@ function getPageMap() {
         );
 }
 
-// for testing
-function test() {
-    // deployGZB64();
-
-    prepGZB64();
-
-    // file_put_contents('this.testing.php', gzuncompress(base64_decode($b64main)));
-}
-
-
-
-
-/* because pspsub is one file, and we need to deal with lots of different
+/* because oryx is one file, and we need to deal with lots of different
  * URLs for the API, we define the root path (for apis) to be [foldername]/?/
  * this allows this one PHP file to process every request.
  */
@@ -1508,14 +1612,21 @@ function getAPIFormatType() {
 
 }
 
+function invalidPage() {
+    header('HTTP/1.1 404 Not Found');
+    setContentType('HTML');
+    echo getTemplate('NOTFOUND');
+}
+
 function streamMP3($id) {
     // get filename
     $fname = dbGetMP3filename($id);
 
     // stream the file.
     if (STREAM_ALLOW_PARTIAL) {
-            streamFile($fname, 'audio/mpeg');
+        streamFile($fname, 'audio/mpeg');
     } else {
+        setContentType('MPEG');
         $byteLength = filesize($fname);
         header("Content-Length: $byteLength");
         fpassthru(fopen($fname, 'rb'));
@@ -1682,7 +1793,9 @@ function dictToXMLNode_legacy($nodeTag, $dict, $contents = null) {
     return $newXML;
 }
 function formatIndexesXML($indexes) {
-    $response = new ResponseObject('indexes');
+    $response = new ResponseObject('indexes', array(
+          'ignoredArticles' => OPT_ARTICLES
+        ));
 
     // add letters to indexes
     foreach(array_keys($indexes) as $index) {
@@ -1699,8 +1812,7 @@ function formatIndexesXML($indexes) {
     }
     return $response;
 }
-function formatMusicDir($id, $folders, $files) {
-    $response = new ResponseObject('directory', array('id' => $id));
+function formatMusicDir($id, $folders, $files, $response) {
 
     // add folder children
     foreach ($folders as $folder) {
@@ -1740,8 +1852,6 @@ function formatMusicDir($id, $folders, $files) {
             // , 'created'     => 
             )));
     }
-
-    return $response;
 }
 
 
@@ -1756,8 +1866,7 @@ function formatMusicDir($id, $folders, $files) {
 
 
 function scanIndexes() {
-    global $OPT_MUSICDIR;
-    $topLevelFolders = getSubDirectories($OPT_MUSICDIR);
+    $topLevelFolders = getSubDirectories(OPT_MUSICDIR);
     $topLevelFoldersByLetter = splitByFirstLetter($topLevelFolders);
     dbWriteIndexes($topLevelFoldersByLetter);
     echo "done writing indexes!";
@@ -1791,10 +1900,9 @@ function getDirContents($parent, &$files, &$folders) {
 }
 
 function scanAllFolders() {
-    global $OPT_MUSICDIR;
     $indexes = dbReadIndexes();
     foreach($indexes as $id => $name) {
-        $fullPath = $OPT_MUSICDIR.$name;
+        $fullPath = OPT_MUSICDIR.$name;
         if (is_dir($fullPath)) {
             dbBeginTrans();
             $containsMusic = scanFolder($fullPath, $id, $name, NULL);
@@ -1810,7 +1918,6 @@ function scanAllFolders() {
 }
 
 function scanFolder($parentPath, $parentId, $parentName, $grandParentName) {
-    global $OPT_MUSICDIR;
     $containsMusic = false;
 
     $files = array(); $folders = array();
@@ -1831,7 +1938,7 @@ function scanFolder($parentPath, $parentId, $parentName, $grandParentName) {
         if (isRightFileType($file)) {
             $filePath = "$parentPath/$file";
             $fileExtn = substr($file, strrpos($file, '.')+1);
-            $relPath = substr($filePath, strlen($OPT_MUSICDIR));
+            $relPath = substr($filePath, strlen(OPT_MUSICDIR));
             dbWriteTrackData($filePath, $file, $fileExtn, $parentId, $parentName, $grandParentName, $relPath);
             $containsMusic = true;
         }
@@ -1945,15 +2052,14 @@ function filenameToTitle($filename, $artist) {
  #####   ### # ######
 
 function dbConnect() {
-    global $OPT_SQL_FILENAME;
     static $db;
     if (isset($db)) {
         return $db;
     } else {
-        if (!file_exists($OPT_SQL_FILENAME)) {
+        if (!file_exists(OPT_SQL_FILENAME)) {
             dbCreateTables();
         }
-        if ($db = new PDO("sqlite:$OPT_SQL_FILENAME")) {
+        if ($db = new PDO('sqlite:'.OPT_SQL_FILENAME)) {
             return $db;
         } else {
             die(getTemplate('DBACCESSERROR'));
@@ -1979,8 +2085,7 @@ function dbCancelTrans($sure = false) {
 }
 
 function dbConnectSQLite3() {
-    global $OPT_SQL_FILENAME;
-    if ($db = new SQLite3($OPT_SQL_FILENAME)) {
+    if ($db = new SQLite3(OPT_SQL_FILENAME)) {
         return $db;
     } else {
         die(getTemplate('DBACCESSERROR'));
@@ -1996,18 +2101,13 @@ function dbCreateTables() {
             name             TEXT NOT NULL,
             dir              TEXT
         );'); echo "tblLibraries created.<br/>";
-    // $db->exec('
-    //     CREATE TABLE IF NOT EXISTS tblIndexes (
-    //         id               INTEGER PRIMARY KEY AUTOINCREMENT,
-    //         name             TEXT NOT NULL UNIQUE,
-    //         letterGroup      TEXT
-    //     );'); echo "tblIndexes created.<br/>";
     $db->exec('
         CREATE TABLE IF NOT EXISTS tblDirectories (
             id           INTEGER PRIMARY KEY AUTOINCREMENT,
             isindex      INTEGER DEFAULT 0,
             lettergroup  TEXT,
             name         TEXT NOT NULL,
+            sortname     TEXT NOT NULL,
             parentid     INTEGER,
             parentname   TEXT NOT NULL,
             fullpath     TEXT NOT NULL UNIQUE
@@ -2064,7 +2164,6 @@ function dbCreateTables() {
 
 
 function dbWriteIndexes($indexes) {
-    global $OPT_MUSICDIR;
     $db = dbConnect();
     $db->beginTransaction();
     foreach($indexes as $letter => $folders) {
@@ -2072,12 +2171,14 @@ function dbWriteIndexes($indexes) {
             $q=$db->prepare('INSERT INTO tblDirectories (
                       lettergroup
                     , name
+                    , sortname
                     , isindex
                     , parentname 
                     , fullpath
                 ) VALUES (
                       :lettergroup
                     , :name
+                    , :sortname
                     , 1
                     , :name
                     , :fullpath
@@ -2085,7 +2186,8 @@ function dbWriteIndexes($indexes) {
             $q->execute(array(
                   ':lettergroup' => $letter
                 , ':name'        => $folder
-                , ':fullpath'    => $OPT_MUSICDIR.$folder
+                , ':fullpath'    => OPT_MUSICDIR.$folder
+                , ':sortname'    => removeArticles($folder)
             ));
         }
     }
@@ -2105,9 +2207,9 @@ function dbReadIndexes() {
 
 function dbCreateDirectory($childName, $parentId, $parentName, $childPath) {
     $db = dbConnect();
-    $q=$db->prepare('INSERT INTO tblDirectories (name, parentid, parentname, fullpath) VALUES (?, ?, ?, ?);');
+    $q=$db->prepare('INSERT INTO tblDirectories (name, sortname, parentid, parentname, fullpath) VALUES (?, ?, ?, ?, ?);');
 
-    $q->execute(array($childName, $parentId, $parentName, $childPath));
+    $q->execute(array($childName, removeArticles($childName), $parentId, $parentName, $childPath));
     return $db->lastInsertId();
 }
 
@@ -2149,8 +2251,16 @@ function dbGetUnscannedCount() {
     $db = dbConnect();
     $q=$db->prepare('SELECT COUNT(*) FROM vwUnscannedTracks;');
     $q->execute();
-    $count = $q->fetch();
-    return $count[0];
+    $count = $q->fetch(PDO::FETCH_COLUMN, 0);
+    return $count;
+}
+
+function dbGetTrackCount() {
+    $db = dbConnect();
+    $q=$db->prepare('SELECT COUNT(*) FROM vwTracks;');
+    $q->execute();
+    $count = $q->fetch(PDO::FETCH_COLUMN, 0);
+    return $count;
 }
 
 function dbUpdateTrackInfo($fullpath, $data) {
@@ -2186,14 +2296,22 @@ function dbUpdateTrackInfo($fullpath, $data) {
 function dbGetIndexes() {
     $db = dbConnect();
     $q=$db->query('SELECT id, name, lettergroup FROM tblDirectories WHERE isindex=1
-                   ORDER BY (lettergroup = "#"), lettergroup, name;');
+                   ORDER BY (lettergroup = "#"), lettergroup, sortname;');
     $data = $q->fetchAll();
+    return $data;
+}
+
+function dbGetFolderName($id) {
+    $db = dbConnect();
+    $q=$db->prepare('SELECT name FROM tblDirectories WHERE id=?;');
+    $q->execute(array($id));
+    $data = $q->fetch(PDO::FETCH_COLUMN, 0);
     return $data;
 }
 
 function dbGetSubFolders($id) {
     $db = dbConnect();
-    $q=$db->prepare('SELECT * FROM tblDirectories WHERE parentid=?;');
+    $q=$db->prepare('SELECT * FROM tblDirectories WHERE parentid=? ORDER BY sortname;');
     $q->execute(array($id));
     $data = $q->fetchAll();
     return $data;
@@ -2314,14 +2432,11 @@ function getByEndsWith($keyLong, $array) {
     return False;
 }
 function removeArticles($word) {
-    global $OPT_ARTICLES;
-    foreach ($OPT_ARTICLES as $article) {
+    foreach (explode(' ', OPT_ARTICLES) as $article) {
         if (startsWith($word, $article)) {
-            $newWord = substr($word, strlen($article));
-            $newWord = trim($newWord);
-            if (strlen($newWord) != 0) {
+            $newWord = trim(preg_replace('/^'.preg_quote($article).'/i', '', $word, 1));
+            if ($newWord)
                 return $newWord;
-            }
         }
     }
     return $word;
