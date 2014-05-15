@@ -13,8 +13,9 @@ define('OPT_SQL_FILENAME', 'oryx.db');
 // to this folder. It is VERY important that this path has a trailing slash.
 define('OPT_MUSICDIR', '/home2/buckly/nonpublic/submusic2/');
 
-$OPT_LETTERGROUPS = array('A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','XYZ', '#');
-$OPT_NONALPHALETTERGROUP = '#';
+// the letter groups for indexes
+define('OPT_LETTERGROUPS', 'A B C D E F G H I J K L M N O P Q R S T U V W XYZ #');
+define('OPT_NONALPHALETTERGROUP', '#');
 
 // articles ignored when sorting indexes. Space-separated words.
 define('OPT_ARTICLES', 'The');
@@ -248,12 +249,7 @@ function htmlStyle() { ?>
             }
 
             /* Indexes */
-            div.indexGroupHeader {
-                font-weight: 700;
-                background-color: #BBB;
-                padding-left: 8px;
-                border-radius: 5px;
-            }
+
             div.indexItem {
                 font-size: 10pt;
                 padding-left: 18px;
@@ -470,6 +466,36 @@ function htmlStyle() { ?>
                 padding: 5px 10px;
                 font-size: 15px;
             }
+
+
+            div.indexGroupHeader {
+                font-weight: 700;
+                background-color: #BBB;
+                padding-left: 8px;
+                border-radius: 5px;
+            }
+            div.indexGroupHeader {
+                position: relative;
+                z-index: 1;
+            }
+            div.indexGroupHeader.fixed {
+                position: fixed;
+                width: 190px;
+                border-top-left-radius: 0px;
+                border-top-right-radius: 0px;
+                top: 0;
+                z-index: 0;
+            }
+            div.indexGroupHeader.fixed.absolute {
+                position: absolute;
+            }
+
+
+
+
+
+
+
         </style>
 <?php }
 
@@ -502,6 +528,65 @@ function htmlScript() { ?>
             $.fn.exists   = function () { return this.length !== 0; }
             $.fn.orreturn = function (def) { return this.exists() ? this : def; }
             $.fn.orrun    = function (foo) { return foo(); };
+
+
+
+
+
+
+
+
+            function prepStickies() {
+                var newStickies = new stickyTitles(jQuery(".indexGroupHeader"));
+                newStickies.load();
+                jQuery('.leftPanelWrapper').on("scroll", function() {
+                    newStickies.scroll();
+                }); 
+            }
+            function stickyTitles(stickies) {
+                this.load = function() {
+                    stickies.each(function(){
+                        console.log(this);
+                        var thisSticky = jQuery(this).wrap('<div class="followWrap" />');
+                        thisSticky.parent().height(thisSticky.outerHeight());
+                        jQuery.data(thisSticky[0], 'pos', thisSticky.position().top);
+                    });
+                }
+
+                this.scroll = function() {
+                    stickies.each(function(i){
+                        var thisSticky = jQuery(this),
+                            nextSticky = stickies.eq(i+1),
+                            prevSticky = stickies.eq(i-1),
+                            pos = jQuery.data(thisSticky[0], 'pos');
+                        if (pos <= jQuery('.leftPanelWrapper').scrollTop()) {
+                            thisSticky.addClass("fixed");
+                            if (nextSticky.length > 0 && thisSticky.offset().top >= jQuery.data(nextSticky[0], 'pos') - thisSticky.outerHeight()) {
+                                thisSticky.addClass("absolute").css("top", jQuery.data(nextSticky[0], 'pos') - thisSticky.outerHeight());
+                            }
+                        } else {
+                            thisSticky.removeClass("fixed");
+                            if (prevSticky.length > 0 && jQuery('.leftPanelWrapper').scrollTop() <= jQuery.data(thisSticky[0], 'pos')  - prevSticky.outerHeight()) {
+                                prevSticky.removeClass("absolute").removeAttr("style");
+                            }
+                        }
+                    });         
+                }
+            }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
             // this executes when the document is 'ready'. Here we do a bunch of preparation for
@@ -792,7 +877,9 @@ function htmlScript() { ?>
             }
 
             function loadIndexes() {
-                $(".leftPanel").load("?/web/indexes");
+                $(".leftPanel").load("?/web/indexes", function() {
+                    prepStickies();
+                });
             }
 
             function hashResponse() {
