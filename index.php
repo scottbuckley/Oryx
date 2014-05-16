@@ -73,6 +73,7 @@ function webHome($style='htmlStyle', $script='htmlScript', $body='htmlBody') { ?
 
         <!-- EXTERNAL JS  -->
         <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.min.js"                  ></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/jquery-color/2.1.2/jquery.color.min.js"      ></script>
         <script src="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.1.1/js/bootstrap.min.js" ></script>
         <script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.6.0/underscore-min.js"       ></script>
         
@@ -287,8 +288,8 @@ function htmlStyle() { ?>
 
             /* Header */
             h1 {
-                background-color: #FCFCFC;
-                /*background-color: rgba(0, 0, 0, 0.01);*/
+                /*background-color: #FCFCFC;*/
+                background-color: rgba(0, 0, 0, 0.01);
                 margin: 0px 0px;
                 
                 color: rgba(138, 138, 138, 0.8);
@@ -380,6 +381,10 @@ function htmlStyle() { ?>
                 display:     block;
                 float:       right;
             }
+            .table-striped > tbody > tr:nth-child(odd) > td,
+            .table-striped > tbody > tr:nth-child(odd) > th {
+                background-color: rgba(0, 0, 0, 0.025);
+            }
             th.trackTrack {
                 width: 1%;
             }
@@ -399,7 +404,7 @@ function htmlStyle() { ?>
             .dirtable td:last-child {
             }
             .dirtable tr:hover {
-                background-color: #EEE;
+                background-color: rgba(0,0,0,0.05);
             }
             .dirtable td {
                 padding: 5px;
@@ -556,7 +561,7 @@ function htmlScript() { ?>
                 $('.leftPanelWrapper').scroll(function() {
                     var floatingHeader = $('.indexGroupHeaderFloater');
                     var needFloat = false;
-                    var currentlyShifingHeader = false;
+                    var currentlyShiftingHeader = false;
                     $('.indexGroup').reverse().each(function(index) {
                         if ($(this).offset().top <= 0) {
                             if (lastIndex != index || !floatingHeaderActive) {
@@ -564,7 +569,7 @@ function htmlScript() { ?>
                                     floatingHeader.css('display', 'block');
                                     floatingHeaderActive = true;
                                 }
-                                if (!currentlyShifingHeader)
+                                if (!currentlyShiftingHeader)
                                     floatingHeader.css('top', 0);
                                 floatingHeader.text($(this).find('.indexGroupHeader').text());
                                 lastIndex = index;
@@ -572,10 +577,10 @@ function htmlScript() { ?>
                             needFloat = true;
                             return false;
                         }
-                        currentlyShifingHeader = false;
+                        currentlyShiftingHeader = false;
                         if ($(this).offset().top <= floatingHeader.outerHeight()) {
                             floatingHeader.css('top', $(this).offset().top-floatingHeader.outerHeight());
-                            currentlyShifingHeader = true;
+                            currentlyShiftingHeader = true;
                         }
                     });
                     if (!needFloat) {
@@ -781,7 +786,8 @@ function htmlScript() { ?>
 
             function loadDirectory(dirId) {
                 // reset the background to plain white
-                $(".centrePanel").stop(true).css('opacity', '1.0');
+                // $(".centrePanel").stop(true).css('opacity', '1.0');
+                $(".centrePanel").stop(true).css('background-color', '#fff');
                 $(".centrePanelWrapper").css('background-image', 'none');
 
                 // populate the centre panel with the directory contents
@@ -840,7 +846,8 @@ function htmlScript() { ?>
                 // has finished loading. When it has finished loading, make the background-image visible.
                 $('.centrePanelWrapper').css('background-image', 'url('+imgSrc+')');
                 $('<img/>').attr('src', imgSrc).load(function() {
-                    $('.centrePanel').animate({'opacity':'0.95'}, 5000);
+                    // $('.centrePanel').animate({'opacity':'0.95'}, 5000);
+                    $('.centrePanel').animate({'background-color':'rgba(255, 255, 255, 0.95)'}, 5000);
                     $(this).remove();
                 });
             }
