@@ -36,7 +36,7 @@ define('PLAYBACK_PRELOAD', true);
 define('ALBUMART_BACKDROP', true);
 
 // whether you want the index headers to be scroll-persistent.
-define('PERSISTENT_INDEXHEADERS', true);
+define('PERSISTENT_INDEXHEADERS', false);
 
 // this sets the webpage title for all responses.
 define('FRONT_TITLE', 'Oryx');
@@ -47,9 +47,9 @@ define('ALBUMART_REGEXP', '/^(id3)?(folder|cover|album)(art)?\.(jpg|jpeg)$/i');
 
 /**** The following settings should only be modified if you know what you're doing. ****/
 define('TIME_2033', 2000000000);
-define('OPT_SCAN_COUNTPERREFRESH', 150);
-$OPT_ACCEPTED_FILE_TYPES = array('.mp3');
-$OPT_IGNOREDFOLDERS = array('..', '.');
+define('OPT_SCAN_COUNTPERREFRESH', 75);
+define('OPT_ACCEPTED_FILE_TYPES', '.mp3');
+define('OPT_IGNOREDFOLDERS', '.. .');
 define('IMG_ICON', 'image/gif;base64,R0lGODlhDAAMAJECAAAAAJaWlv///wAAACH5BAEAAAIALAAAAAAMAAwAAAIZlI+pGe2NgpKHxssOAGobn4AgInKhuaRpAQA7');
 
 #     # ####### #     # #
@@ -118,6 +118,12 @@ function htmlBody() { ?>
         <div class="footerWrapper">
             <div class="footer">
                 <a href="?/signout">Sign Out</a>
+                <a href="javascript:void(0);" onclick="scanDB();">Scan DB</a>
+                <div class="progress progress-striped" style="width:300px;">
+                    <div class="progress-bar" style="width: 100%;">
+                        <span></span>
+                    </div>
+                </div>
             </div>
         </div>
 <?php }
@@ -250,6 +256,9 @@ function htmlStyle() { ?>
                 width: 100%;
                 height: 100%;
                 padding: 5px;
+            }
+            .footer div.progress {
+                float: right;
             }
 
             /* Indexes */
@@ -554,6 +563,67 @@ function htmlScript() { ?>
                     scrollHeaders();
                 }
             });
+
+            function scanDB() {
+                var progress      = $('.footer .progress');
+                var progressbar   = $('.footer .progress-bar');
+                var progressspan  = $('.footer .progress-bar span');
+
+                progress.addClass('active');
+                progressspan.text("Looking for new files...");
+
+                $.getJSON('?/db/newfiles', function(data) {
+                    var totalcount = data.oryx_newfiles.newfiles;
+
+                    progress
+                        .removeClass('active')
+                        .removeClass('progress-striped');
+                    progressspan
+                        .text("Processing new files...");
+
+                    var callBack = function(newdata) {
+                        var newcount = newdata.oryx_scantracks.newfiles;
+                        showProgress(totalcount-newcount, totalcount);
+                        if (newcount > 0)
+                            $.getJSON('?/db/scantracks', callBack)
+                                .fail(badProgress);
+                    }
+
+                    loadIndexes();
+                    
+                    $.getJSON('?/db/scantracks', callBack)
+                        .fail(badProgress);
+
+                }).fail(badProgress);
+            }
+
+            function showProgress(progress, outof) {
+                var progressbar = $('.footer .progress .progress-bar');
+                
+                if (progress == outof || outof == 0) {
+                    progressbar
+                        .css('width', '100%')
+                        .addClass('progress-bar-success');
+                    progressbar
+                        .find('span')
+                        .text("Finished scanning.");
+                } else {
+                    var percent = parseInt(100*parseFloat(progress)/parseFloat(outof)) + '%';
+                    progressbar.css('width', percent);
+                    progressbar.find('span').text(percent);
+                }
+            }
+
+            function badProgress() {
+                var progressbar = $('.footer .progress .progress-bar');
+                progressbar
+                    .css('width', '100%')
+                    .removeClass('progress-bar-success')
+                    .addClass('progress-bar-danger');
+                progressbar
+                    .find('span')
+                    .text("There was an error while scanning :(");
+            }
 
             function scrollHeaders() {
                 var lastIndex = -1;
@@ -1155,6 +1225,10 @@ function echoRO($r) {
         : $r->render(  );
 }
 
+function echoROjson($r) {
+    echo $r->renderJSON(false);
+}
+
 class ResponseObject {
     private $name;
     public $properties;
@@ -1442,7 +1516,7 @@ function getTemplate($templateName) {
 
 // http://www.subsonic.org/pages/api.jsp#ping
 function ping() {
-    $echoRO( new ResponseObject('') );
+    echoRO( new ResponseObject('') );
 }
 
 // http://www.subsonic.org/pages/api.jsp#getLicense
@@ -1548,10 +1622,18 @@ function createDB() {
 }
 
 function scanNewFiles() {
-    echo "Scanning Indexes...";
     scanIndexes();
-    echo "Scanning folders...";
     scanAllFolders();
+    echoROjson(new ResponseObject('oryx_newfiles', array(
+        'newfiles' => dbGetUnscannedCount()
+    )));
+}
+
+function scanTracks() {
+    scanMP3Info();
+    echoROjson(new ResponseObject('oryx_scantracks', array(
+        'newfiles' => dbGetUnscannedCount()
+    )));
 }
 
 function restBadAuth() {
@@ -1561,26 +1643,40 @@ function restBadAuth() {
     )), 'failed');
 }
 
-function scanTracks() {
-    $response = new ResponseObject('mp3scan');
-    scanMP3Info($response);
-    echo '
-<script language="javascript" type="text/javascript">
-    setTimeout(function() {
-        window.location.href=window.location.href;
-    }, 800);
-</script>
-';
-    echo $response->properties['count'];
-    // echo $response->renderJSON(false);
-}
-
 // for testing
 function test() {
-    echoRO(new ResponseObject('error', array(
-          'code'    => 40
-        , 'message' => 'Wrong username or passwddord.'
-    )), 'failed');
+
+    ?>
+
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+
+        <!-- EXTERNAL JS  -->
+        <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.min.js"                  ></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/jquery-color/2.1.2/jquery.color.min.js"      ></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.1.1/js/bootstrap.min.js" ></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.6.0/underscore-min.js"       ></script>
+        
+        <!-- EXTERNAL CSS -->
+        <link rel="stylesheet" href="//fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900"               >
+        <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.1.1/css/bootstrap.min.css" >
+        <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/font-awesome/4.0.3/css/font-awesome.min.css"   >
+
+        <link rel="icon" type="img/ico" href="data:<?php echo IMG_ICON; ?>">
+    </head>
+    <body>
+
+        <div class="progress progress-striped active" style="width:300px;">
+            <div class="progress-bar" style="width: 100%;">
+                <span></span>
+            </div>
+        </div>
+    </body>
+</html>
+
+    <?php
+
 }
 
 
@@ -1601,7 +1697,7 @@ function forceRefresh() {
 
 function getPageMap() {
     return array
-          // URIs for the RESTful API
+          // URIs for SUBSONIC API
         ( '/rest/getMusicDirectory.view'  => 'getMusicDirectory'
         , '/rest/getMusicFolders.view'    => 'getMusicFolders'
         , '/rest/getRandomSongs.view'     => 'getRandomSongs'
@@ -1613,20 +1709,19 @@ function getPageMap() {
         , '/rest/stream.view'             => 'stream'
         , '/rest/ping.view'               => 'ping'
 
+          // URIs for ORYX API
+        , '/signout'        => 'authSignOut'
+        , '/db/createdb'    => 'createDB'
+        , '/db/newfiles'    => 'scanNewFiles'
+        , '/db/scantracks'  => 'scanTracks'
+
         // URIs for the HTML frontend
         , '/home'           => 'webHome'
         , '/web/indexes'    => 'webIndexes'
         , '/web/directory'  => 'webDirectory'
         , '/web/track_tr'   => 'webTrackTR'
-
-        // URIs for performing other functions
-        , '/signout'        => 'authSignOut'
-        , '/web/scan'       => 'scanNewFiles'
-        , '/web/scan2'      => 'scanTracks'
-        , '/web/createdb'   => 'createDB'
-
-        // other
         , '/web/test'       => 'test'
+
         );
 }
 
@@ -1936,7 +2031,6 @@ function scanIndexes() {
     $topLevelFolders = getSubDirectories(OPT_MUSICDIR);
     $topLevelFoldersByLetter = splitByFirstLetter($topLevelFolders);
     dbWriteIndexes($topLevelFoldersByLetter);
-    echo "done writing indexes!";
 }
 
 function getSubDirectories($parent) {
@@ -1946,14 +2040,13 @@ function getSubDirectories($parent) {
     return $folders;
 }
 function getDirContents($parent, &$files, &$folders) {
-    global $OPT_IGNOREDFOLDERS;
     // change the cwd to $parent
     $oldwd = getcwd();
     chdir($parent);
 
     $everything = scandir($parent);
     foreach ($everything as $item) {
-        if (!in_array($item, $OPT_IGNOREDFOLDERS)) {
+        if (!in_array($item, explode(' ', OPT_IGNOREDFOLDERS))) {
             if (is_dir($item)) {
                 $folders[] = $item;
             } elseif (is_file($item)) {
@@ -1980,8 +2073,7 @@ function scanAllFolders() {
         } else {
             dbDeleteIndex($id);
         }
-    }    echo "done scanning folders!";
-
+    }
 }
 
 function scanFolder($parentPath, $parentId, $parentName, $grandParentName) {
@@ -2015,17 +2107,15 @@ function scanFolder($parentPath, $parentId, $parentName, $grandParentName) {
 }
 
 function isRightFileType($filename) {
-    global $OPT_ACCEPTED_FILE_TYPES;
-    foreach ($OPT_ACCEPTED_FILE_TYPES as $fileType) {
+    foreach (explode(' ', OPT_ACCEPTED_FILE_TYPES) as $fileType) {
         if (endsWith($filename, $fileType))
             return true;
     }
     return false;
 }
 
-function scanMP3Info($response) {
+function scanMP3Info() {
     dbBeginTrans();
-    $count = dbGetUnscannedCount();
     $tracks  = dbGetUnscannedTracks(OPT_SCAN_COUNTPERREFRESH);
     foreach($tracks as $track) {
         $filepath = $track['fullpath'];
@@ -2034,11 +2124,6 @@ function scanMP3Info($response) {
         dbUpdateTrackInfo($filepath, $meta);
     }
     dbEndTrans();
-
-    $response->addProperty('count', $count);
-
-    // uncomment this if you want the JSON response to list the filenames scanned
-    // $response->addProperty('mp3s' , $tracks );
 }
 
 function mp3lib($attachments=false) {
@@ -2512,15 +2597,14 @@ function strcontains($haystack, $needle) {
     return (strpos($haystack, $needle) !== false);
 }
 function getLetterGroup($name) {
-    global $OPT_LETTERGROUPS, $OPT_NONALPHALETTERGROUP;
     $first = removeArticles($name);
     $first = strtoupper(substr($first, 0, 1));
-    foreach($OPT_LETTERGROUPS as $lGroup) {
+    foreach(explode(' ', OPT_LETTERGROUPS) as $lGroup) {
         if (strcontains($lGroup, $first)) {
             return $lGroup;
         }
     }
-    return $OPT_NONALPHALETTERGROUP;
+    return OPT_NONALPHALETTERGROUP;
 }
 function removeTrailingSlash($path) {
     if (endsWith($path, '/'))
@@ -2528,13 +2612,12 @@ function removeTrailingSlash($path) {
     return $path;
 }
 function splitByFirstLetter($items) {
-    global $OPT_LETTERGROUPS, $OPT_IGNOREDFOLDERS;
     $splitItems = array();
-    foreach($OPT_LETTERGROUPS as $lGroup) {
+    foreach(explode(' ', OPT_LETTERGROUPS) as $lGroup) {
         $splitItems[$lGroup] = array();
     }
     foreach($items as $item) {
-        if (!in_array($item, $OPT_IGNOREDFOLDERS)) {
+        if (!in_array($item, explode(' ', OPT_IGNOREDFOLDERS))) {
             $lGroup = getLetterGroup($item);
             $splitItems[$lGroup][] = $item;
         }
