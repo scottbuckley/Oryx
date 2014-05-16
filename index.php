@@ -35,6 +35,9 @@ define('PLAYBACK_PRELOAD', true);
 // art backdrop
 define('ALBUMART_BACKDROP', true);
 
+// whether you want the index headers to be scroll-persistent.
+define('PERSISTENT_INDEXHEADERS', true);
+
 // this sets the webpage title for all responses.
 define('FRONT_TITLE', 'Oryx');
 
@@ -249,7 +252,21 @@ function htmlStyle() { ?>
             }
 
             /* Indexes */
-
+            div.indexGroupHeader {
+                font-weight: 700;
+                background-color: #BBB;
+                padding-left: 8px;
+                border-radius: 5px;
+                z-index: ;
+            }
+            div.indexGroupHeaderFloater {
+                display:none;
+                position: fixed;
+                top: 0px;
+                width: 190px;
+                border-top-left-radius:  0px;
+                border-top-right-radius: 0px;
+            }
             div.indexItem {
                 font-size: 10pt;
                 padding-left: 18px;
@@ -466,36 +483,6 @@ function htmlStyle() { ?>
                 padding: 5px 10px;
                 font-size: 15px;
             }
-
-
-            div.indexGroupHeader {
-                font-weight: 700;
-                background-color: #BBB;
-                padding-left: 8px;
-                border-radius: 5px;
-            }
-            div.indexGroupHeader {
-                position: relative;
-                z-index: 1;
-            }
-            div.indexGroupHeader.fixed {
-                position: fixed;
-                width: 190px;
-                border-top-left-radius: 0px;
-                border-top-right-radius: 0px;
-                top: 0;
-                z-index: 0;
-            }
-            div.indexGroupHeader.fixed.absolute {
-                position: absolute;
-            }
-
-
-
-
-
-
-
         </style>
 <?php }
 
@@ -512,8 +499,9 @@ function htmlScript() { ?>
         <script type="text/javascript">
 
             //settings via PHP
-            var PLAYBACK_PRELOAD  = <?php echo tf(PLAYBACK_PRELOAD); ?>;
-            var ALBUMART_BACKDROP = <?php echo tf(ALBUMART_BACKDROP); ?>;
+            var PLAYBACK_PRELOAD        = <?php echo tf(PLAYBACK_PRELOAD); ?>;
+            var ALBUMART_BACKDROP       = <?php echo tf(ALBUMART_BACKDROP); ?>;
+            var PERSISTENT_INDEXHEADERS = <?php echo tf(PERSISTENT_INDEXHEADERS); ?>;
 
             //semi-globals
             var currentTrackIndex = 0;
@@ -528,65 +516,7 @@ function htmlScript() { ?>
             $.fn.exists   = function () { return this.length !== 0; }
             $.fn.orreturn = function (def) { return this.exists() ? this : def; }
             $.fn.orrun    = function (foo) { return foo(); };
-
-
-
-
-
-
-
-
-            function prepStickies() {
-                var newStickies = new stickyTitles(jQuery(".indexGroupHeader"));
-                newStickies.load();
-                jQuery('.leftPanelWrapper').on("scroll", function() {
-                    newStickies.scroll();
-                }); 
-            }
-            function stickyTitles(stickies) {
-                this.load = function() {
-                    stickies.each(function(){
-                        console.log(this);
-                        var thisSticky = jQuery(this).wrap('<div class="followWrap" />');
-                        thisSticky.parent().height(thisSticky.outerHeight());
-                        jQuery.data(thisSticky[0], 'pos', thisSticky.position().top);
-                    });
-                }
-
-                this.scroll = function() {
-                    stickies.each(function(i){
-                        var thisSticky = jQuery(this),
-                            nextSticky = stickies.eq(i+1),
-                            prevSticky = stickies.eq(i-1),
-                            pos = jQuery.data(thisSticky[0], 'pos');
-                        if (pos <= jQuery('.leftPanelWrapper').scrollTop()) {
-                            thisSticky.addClass("fixed");
-                            if (nextSticky.length > 0 && thisSticky.offset().top >= jQuery.data(nextSticky[0], 'pos') - thisSticky.outerHeight()) {
-                                thisSticky.addClass("absolute").css("top", jQuery.data(nextSticky[0], 'pos') - thisSticky.outerHeight());
-                            }
-                        } else {
-                            thisSticky.removeClass("fixed");
-                            if (prevSticky.length > 0 && jQuery('.leftPanelWrapper').scrollTop() <= jQuery.data(thisSticky[0], 'pos')  - prevSticky.outerHeight()) {
-                                prevSticky.removeClass("absolute").removeAttr("style");
-                            }
-                        }
-                    });         
-                }
-            }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+            $.fn.reverse = [].reverse;
 
 
             // this executes when the document is 'ready'. Here we do a bunch of preparation for
@@ -614,7 +544,46 @@ function htmlScript() { ?>
                 $('#playerControls button').tooltip();
 
                 prepButtons();
+
+                if (PERSISTENT_INDEXHEADERS) {
+                    scrollHeaders();
+                }
             });
+
+            function scrollHeaders() {
+                var lastIndex = -1;
+                var floatingHeaderActive = false;
+                $('.leftPanelWrapper').scroll(function() {
+                    var floatingHeader = $('.indexGroupHeaderFloater');
+                    var needFloat = false;
+                    var currentlyShifingHeader = false;
+                    $('.indexGroup').reverse().each(function(index) {
+                        if ($(this).offset().top <= 0) {
+                            if (lastIndex != index || !floatingHeaderActive) {
+                                if (!floatingHeaderActive) {
+                                    floatingHeader.css('display', 'block');
+                                    floatingHeaderActive = true;
+                                }
+                                if (!currentlyShifingHeader)
+                                    floatingHeader.css('top', 0);
+                                floatingHeader.text($(this).find('.indexGroupHeader').text());
+                                lastIndex = index;
+                            }
+                            needFloat = true;
+                            return false;
+                        }
+                        currentlyShifingHeader = false;
+                        if ($(this).offset().top <= floatingHeader.outerHeight()) {
+                            floatingHeader.css('top', $(this).offset().top-floatingHeader.outerHeight());
+                            currentlyShifingHeader = true;
+                        }
+                    });
+                    if (!needFloat) {
+                        floatingHeader.css('display', 'none');
+                        floatingHeaderActive = false;
+                    }
+                });
+            }
 
             function prepButtons(selector) {
                 if(typeof(selector)==='undefined') selector = 'button';
@@ -878,7 +847,11 @@ function htmlScript() { ?>
 
             function loadIndexes() {
                 $(".leftPanel").load("?/web/indexes", function() {
-                    prepStickies();
+                    if (PERSISTENT_INDEXHEADERS) {
+                        var headerWidth = $('.indexGroupHeader').first().outerWidth();
+                        $('.leftPanel').append($('<div class="indexGroupHeader indexGroupHeaderFloater">$nbsp;</div>'));
+                        $('.indexGroupHeaderFloater').css('width', headerWidth);
+                    }
                 });
             }
 
