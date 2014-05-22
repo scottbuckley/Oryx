@@ -22,7 +22,7 @@ define('OPT_NONALPHALETTERGROUP', '#');
 define('OPT_ARTICLES', 'The');
 
 // disable this if you want oryx to require no authentication. Not recommended if your server is public-facing.
-define('REQUIRE_AUTH', false);
+define('REQUIRE_AUTH', true);
 
 // Allowing oryx to serve a partial file is required for being able to skip through a track (past the buffer).
 // Also Safari won't even show playing progress or time without partial file service. Turn this off, however, if
@@ -77,10 +77,8 @@ function webHome($style='htmlStyle', $script='htmlScript', $body='htmlBody') { ?
         <script src="//cdnjs.cloudflare.com/ajax/libs/jquery-color/2.1.2/jquery.color.min.js"      ></script>
         <script src="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.1.1/js/bootstrap.min.js" ></script>
         <script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.6.0/underscore-min.js"       ></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/html5sortable/0.1.1/html.sortable.min.js"    ></script>
         
-        <!-- HTML5SORTABLE (DUMPED) -->
-        <script type="text/javascript">!function(a){var b,c=a();a.fn.sortable=function(d){var e=String(d);return d=a.extend({connectWith:!1,placeholder:null,dragImage:null},d),this.each(function(){if("reload"===e&&a(this).children(d.items).off("dragstart.h5s dragend.h5s selectstart.h5s dragover.h5s dragenter.h5s drop.h5s"),/^enable|disable|destroy$/.test(e)){var f=a(this).children(a(this).data("items")).attr("draggable","enable"===e);return void("destroy"===e&&(a(this).off("sortupdate"),f.add(this).removeData("connectWith items").off("dragstart.h5s dragend.h5s selectstart.h5s dragover.h5s dragenter.h5s drop.h5s").off("sortupdate")))}var g=a(this).data("opts");"undefined"==typeof g?a(this).data("opts",d):d=g;var h,i,j,k,l=a(this).children(d.items),m=null===d.placeholder?a("<"+(/^ul|ol$/i.test(this.tagName)?"li":"div")+' class="sortable-placeholder">'):a(d.placeholder).addClass("sortable-placeholder");l.find(d.handle).mousedown(function(){h=!0}).mouseup(function(){h=!1}),a(this).data("items",d.items),c=c.add(m),d.connectWith&&a(d.connectWith).add(this).data("connectWith",d.connectWith),l.attr("draggable","true").on("dragstart.h5s",function(c){if(c.stopImmediatePropagation(),d.handle&&!h)return!1;h=!1;var e=c.originalEvent.dataTransfer;e.effectAllowed="move",e.setData("Text","dummy"),d.dragImage&&e.setDragImage&&e.setDragImage(d.dragImage,0,0),i=(b=a(this)).addClass("sortable-dragging").index(),j=a(this).parent()}).on("dragend.h5s",function(){b&&(b.removeClass("sortable-dragging").show(),c.detach(),k=a(this).parent(),(i!==b.index()||j!==k)&&b.parent().triggerHandler("sortupdate",{item:b,oldindex:i,startparent:j,endparent:k}),b=null)}).not("a[href], img").on("selectstart.h5s",function(){return d.handle&&!h?!0:(this.dragDrop&&this.dragDrop(),!1)}).end().add([this,m]).on("dragover.h5s dragenter.h5s drop.h5s",function(e){if(!l.is(b)&&d.connectWith!==a(b).parent().data("connectWith"))return!0;if("drop"===e.type)return e.stopPropagation(),c.filter(":visible").after(b),b.trigger("dragend.h5s"),!1;if(e.preventDefault(),e.originalEvent.dataTransfer.dropEffect="move",l.is(this)){var f=b.outerHeight(),g=a(this).outerHeight();if(d.forcePlaceholderSize&&m.height(f),g>f){var h=g-f,i=a(this).offset().top;if(m.index()<a(this).index()&&e.originalEvent.pageY<i+h)return!1;if(m.index()>a(this).index()&&e.originalEvent.pageY>i+g-h)return!1}b.hide(),a(this)[m.index()<a(this).index()?"after":"before"](m),c.not(m).detach()}else c.is(this)||a(this).children(d.items).length||(c.detach(),a(this).append(m));return!1})})}}($);</script>
-
         <!-- EXTERNAL CSS -->
         <link rel="stylesheet" href="//fonts.googleapis.com/css?family=Raleway:100,200,300,400,500,600,700,800,900"             >
         <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.1.1/css/bootstrap.min.css" >
@@ -134,7 +132,7 @@ function htmlBody() { ?>
 function htmlLoginForm() { ?>
     <div class="loginContainer">
       <form class="form-signin" method="post">
-        <h2 class="form-signin-heading">Please sign in to oryx</h2>
+        <h2 class="form-signin-heading">Sign in to <b>Oryx</b></h2>
         <input type="text"     class="form-control" placeholder="Username" name="frmUsr" required autofocus>
         <input type="password" class="form-control" placeholder="Password" name="frmPwd" required>
         <?php postLoginFailAlert(); ?>
@@ -368,6 +366,9 @@ function htmlStyle() { ?>
                 max-width:  400px;
                 padding:    25px;
                 margin:     0 auto;
+            }
+            .form-signin-heading {
+                text-align: center;
             }
             .form-signin .form-signin-heading,
             .form-signin .checkbox {
@@ -1155,41 +1156,46 @@ function badAuth($requestPath) {
     }
 }
 
+function uFlex() {
+    static $user;
+
+    manual_require_once('lib/uFlex/class.uFlex.php');
+    if (!isset($user)) {
+        $user = new uFlex(false);
+        $user->db = dbConnect();
+        $user->opt['table_name']         = 'tblUsers';
+        $user->opt['cookie_name']        = 'oryxSession';
+        $user->opt['cookie_time']        = '+90 days';
+        $user->opt['js_cookies_allowed'] = false;
+        $user->start();
+    }
+    return $user;
+}
+
 function checkAuth() {
+    $user = uFlex();
+    // check auth via cookie
+    if ($user->signed)
+        return true;
 
-    // check cookie
-    $cookie_un = ¿($_COOKIE['oryx_auth']['un']);
-    $cookie_pw = ¿($_COOKIE['oryx_auth']['pw']);
-
-    if ($cookie_un && $cookie_pw)
-        if(dbCheckUserPass($cookie_un, unhex($cookie_pw)))
-            return true;
-    
-
-    // check POST    
+    // check auth via POST
     $post_un = ¿($_POST['frmUsr']);
     $post_pw = ¿($_POST['frmPwd']);
-
     if ($post_un && $post_pw) {
-        if(dbCheckUserPass($post_un, $post_pw)) {
-            makeAuthCookie($post_un, $post_pw);
+        if ($user->login($post_un, $post_pw, true)) {
+            forceReload();
             return true;
-        }
-        else {
+        } else
             $GLOBALS['loginPostTried'] = true;
-        }
     }
 
-
-    // check GET
+    // check auth via GET
     $get_un = ¿($_REQUEST['u']);
     $get_pw = ¿($_REQUEST['p']);
-
     if ($get_un && $get_pw)
-        if(dbCheckUserPass($get_un, unhex($get_pw)))
+        if($user->login($get_un, $get_pw, false))
             return true;
 
-    // fail
     return false;
 }
 
@@ -1683,8 +1689,11 @@ function restBadAuth() {
 
 // for testing
 function test() {
-    // prepGZB64();
-
+    $user = uFlex();
+    $user->register(array(
+        'username' => 'Admin',
+        'password' => 'admin'
+    ), false);
 }
 
 
@@ -1732,6 +1741,24 @@ function getPageMap() {
         , '/web/test'       => 'test'
 
         );
+}
+
+function forceReload() {
+    $refresh = function() { ?>
+        <html>
+            <meta http-equiv="refresh" content="1;url=/">
+            <center>You have been logged in. Refresh this page if you are not redirected.</center>
+            <script type="text/javascript">
+                window.location.href = window.location.href;
+            </script>
+        </html>
+    <?php };
+    webHome(
+        'htmlStyle',
+        '·',
+        $refresh
+    );
+    exit;
 }
 
 /* because oryx is one file, and we need to deal with lots of different
@@ -2302,9 +2329,15 @@ function dbCreateTables() {
         );');
     $db->exec('
         CREATE TABLE IF NOT EXISTS tblUsers (
-            id               INTEGER PRIMARY KEY AUTOINCREMENT,
-            username         TEXT NOT NULL UNIQUE,
-            md5pass          TEXT NOT NULL
+            user_id       INTEGER PRIMARY KEY AUTOINCREMENT,
+            username      TEXT NOT NULL UNIQUE,
+            password      TEXT NOT NULL,
+            email         TEXT,
+            activated     INTEGER NOT NULL DEFAULT 0,
+            confirmation  TEXT,
+            reg_date      INTEGER NOT NULL,
+            last_login    INTEGER NOT NULL DEFAULT 0,
+            group_id      INTEGER NOT NULL DEFAULT 1
         );');
     $db->exec('
         CREATE VIEW IF NOT EXISTS vwTracks as
