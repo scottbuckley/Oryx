@@ -14,7 +14,7 @@ define('OPT_SQL_FILENAME', 'oryx.db');
 // to this folder. It is VERY important that this path has a trailing slash.
 define('OPT_MUSICDIR', '/home2/buckly/nonpublic/submusic2/');
 
-// the letter groups for indexes
+// the letter groups for indexes. space-separated characters  (or groups of characters)
 define('OPT_LETTERGROUPS', 'A B C D E F G H I J K L M N O P Q R S T U V W XYZ #');
 define('OPT_NONALPHALETTERGROUP', '#');
 
@@ -66,7 +66,7 @@ define('IMG_ICON', 'image/gif;base64,R0lGODlhDAAMAJECAAAAAJaWlv///wAAACH5BAEAAAI
 // the main page for oryx's web interface. below you see only what is common to all pages.
 // the three functions provided $style, $script, and $body will be called at the appropriate times
 // to insert these sections. If you specify no arguments, the default (authorised) page is rendered.
-function webHome($style='htmlStyle', $script='htmlScript', $body='htmlBody') { ?>
+function htmlHome($style='htmlStyle', $script='htmlScript', $body='htmlBody') { ?>
 <!DOCTYPE html>
 <html lang="en">
     <head>
@@ -143,7 +143,7 @@ function htmlLoginForm() { ?>
 
 // create the raw HTML for a 'bad auth' page - this is just a login screen.
 function htmlBadAuth() {
-    webHome(
+    htmlHome(
         'htmlStyle',
         '·',
         'htmlLoginForm'
@@ -171,12 +171,14 @@ function htmlSettings() { ?>
         </ul>
         <!-- Tab panes -->
         <div class="tab-content">
-            <div class="tab-pane fade in active" id="generalSettings">general stuuuufff</div>
-            <div class="tab-pane fade"           id="musicSettings"  >sdfsdfsdfsdf     </div>
-            <div class="tab-pane fade"           id="userSettings"   >users????        </div>
+            <div class="tab-pane fade in active" id="generalSettings"></div>
+            <div class="tab-pane fade"           id="musicSettings"  ></div>
+            <div class="tab-pane fade"           id="userSettings"   ></div>
         </div>
     </div>
 <?php }
+
+
 
  #####   #####   #####
 #     # #     # #     #
@@ -539,6 +541,11 @@ function htmlStyle() { ?>
             .settingsContainer ul.nav-tabs li:last-child {
                 margin-right: 10px;
             }
+
+            /* Settings */
+            .tab-content {
+                padding: 10px;
+            }
         </style>
 <?php }
 
@@ -788,11 +795,13 @@ function htmlScript() { ?>
                 // play the track.
                 var newTrack = newTR.attr('oryxid');
 
+                // check if there is an (appropriate) preloaded track
                 if (altAudio!=null && altAudio.attr('oryxid') == newTrack) {
                     console.log('Playing. Preloaded.');
 
                     // set the (background loaded) audio element's id to htmlAudio, for later access
                     altAudio.attr('id', 'htmlAudio');
+                    altAudio.get(0).volume = $('#htmlAudio').get(0).volume;
 
                     // replace the current audio element with the background-loaded one.
                     $('#htmlAudio').replaceWith(altAudio);
@@ -901,7 +910,14 @@ function htmlScript() { ?>
 
             function loadSettings() {
                 loadCentre('?/web/settings', function() {
-
+                    $('a[data-toggle="tab"]').on('show.bs.tab', function (e) {
+                        var tabid = $(e.target).attr('href').substr(1);
+                        $("#"+tabid)
+                            .html(snippetLoader)
+                            .load('?/web/settingstab?tab='+tabid, function() {
+                                // tab loaded
+                            });
+                    })
                 });
             }
 
@@ -1014,6 +1030,8 @@ function htmlScript() { ?>
         </script>
 <?php }
 
+
+
    #                             #####
   # #        #   ##   #    #    #     #  ####  #    # ##### ###### #    # #####
  #   #       #  #  #   #  #     #       #    # ##   #   #   #      ##   #   #
@@ -1021,7 +1039,6 @@ function htmlScript() { ?>
 #######      # ######   ##      #       #    # #  # #   #   #      #  # #   #
 #     # #    # #    #  #  #     #     # #    # #   ##   #   #      #   ##   #
 #     #  ####  #    # #    #     #####   ####  #    #   #   ###### #    #   #
-
 
 
 function webIndexes() { 
@@ -1138,6 +1155,35 @@ function webTrackTR() {
        <td class=`pliDelete`>&#xf00d;</td>");
 }
 
+function htmlSettingsTab() {
+    $tab = $_REQUEST['tab'];
+    if ($tab == 'generalSettings') { ?><?php }
+    if ($tab == 'musicSettings') { ?><?php }
+    if ($tab == 'userSettings') {
+        htmlUserSettings();
+    }
+
+    if ($tab == 'otherSettings') { ?><?php }
+}
+
+function htmlUserSettings() {
+    $users = dbGetUsers();
+
+    »("<table class=`table table-striped table-condensed`>
+         <thead><tr>
+           <th>User</th>
+         </tr></thead>
+         <tbody>");
+
+    foreach ($users as $user) {
+        $username = $user['username'];
+        »("<tr><td>$username</td></tr>");
+    }
+
+    »("</tbody></table>");
+
+}
+
 
    #
   # #   #    # ##### #    #
@@ -1193,43 +1239,19 @@ function checkAuth() {
     $get_un = ¿($_REQUEST['u']);
     $get_pw = ¿($_REQUEST['p']);
     if ($get_un && $get_pw)
-        if($user->login($get_un, $get_pw, false))
+        if($user->login($get_un, unhex($get_pw), false))
             return true;
 
     return false;
 }
 
-function makeAuthCookie($un, $pw) {
-    setcookie(
-          'oryx_auth[un]'
-        , $un
-        , TIME_2033
-    );
-    setcookie(
-          'oryx_auth[pw]'
-        , hex($pw)
-        , TIME_2033
-    );
-
-    // also we will force a refresh
-    forceRefresh();
-}
-
-function authSignOut() {
-    // delete the cookies
-    setcookie(
-          'oryx_auth[un]'
-        , ''
-        , time()-1
-    );
-    setcookie(
-          'oryx_auth[pw]'
-        , ''
-        , time()-1
-    );
-
-    // also we will force a refresh
-    forceRefresh();   
+function addDefaultUser() {
+    $user = uFlex();
+    $user->register(array(
+        'username' => 'Admin',
+        'password' => 'admin',
+        'admin'    => 1
+    ), false);
 }
 
 function unhex($pw) {
@@ -1631,6 +1653,8 @@ function getCoverArt() {
 // http://www.subsonic.org/pages/api.jsp#stream
 function stream() {
     $id = $_REQUEST['id'];
+    $user = uFlex();
+    dbAddTrackHistory($user->id, $id);
     streamMP3($id);
 }
 
@@ -1663,6 +1687,7 @@ function getStarred() {
 
 function createDB() {
     dbCreateTables();
+    addDefaultUser();
 }
 
 function scanNewFiles() {
@@ -1690,10 +1715,7 @@ function restBadAuth() {
 // for testing
 function test() {
     $user = uFlex();
-    $user->register(array(
-        'username' => 'Admin',
-        'password' => 'admin'
-    ), false);
+    print_r($user);
 }
 
 
@@ -1733,12 +1755,13 @@ function getPageMap() {
         , '/db/scantracks'  => 'scanTracks'
 
         // URIs for the HTML frontend
-        , '/home'           => 'webHome'
-        , '/web/indexes'    => 'webIndexes'
-        , '/web/directory'  => 'webDirectory'
-        , '/web/track_tr'   => 'webTrackTR'
-        , '/web/settings'   => 'htmlSettings'
-        , '/web/test'       => 'test'
+        , '/home'            => 'htmlHome'
+        , '/web/indexes'     => 'webIndexes'
+        , '/web/directory'   => 'webDirectory'
+        , '/web/track_tr'    => 'webTrackTR'
+        , '/web/settings'    => 'htmlSettings'
+        , '/web/settingstab' => 'htmlSettingsTab'
+        , '/web/test'        => 'test'
 
         );
 }
@@ -1753,7 +1776,7 @@ function forceReload() {
             </script>
         </html>
     <?php };
-    webHome(
+    htmlHome(
         'htmlStyle',
         '·',
         $refresh
@@ -1767,7 +1790,7 @@ function forceReload() {
  */
 function processURI() {
     // defaults
-    $pageFunc    = 'webHome';
+    $pageFunc    = 'htmlHome';
     $requestPath = null;
 
     // use the path to decide what to do
@@ -2332,12 +2355,22 @@ function dbCreateTables() {
             user_id       INTEGER PRIMARY KEY AUTOINCREMENT,
             username      TEXT NOT NULL UNIQUE,
             password      TEXT NOT NULL,
+            admin         INTEGER NOT NULL DEFAULT 0,
             email         TEXT,
             activated     INTEGER NOT NULL DEFAULT 0,
             confirmation  TEXT,
             reg_date      INTEGER NOT NULL,
-            last_login    INTEGER NOT NULL DEFAULT 0,
-            group_id      INTEGER NOT NULL DEFAULT 1
+            last_login    INTEGER NOT NULL DEFAULT 0
+        );');
+    $db->exec('
+        CREATE TABLE IF NOT EXISTS tblTrackHistory (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id    INTEGER,
+            track_id   INTEGER,
+            timestamp  INTEGER,
+
+            FOREIGN KEY (user_id)  REFERENCES tblUsers(user_id),
+            FOREIGN KEY (track_id) REFERENCES tblTrackData(id)
         );');
     $db->exec('
         CREATE VIEW IF NOT EXISTS vwTracks as
@@ -2413,6 +2446,14 @@ function dbCreateDirectory($childName, $parentId, $parentName, $childPath) {
     $q=$db->prepare('INSERT INTO tblDirectories (name, sortname, parentid, parentname, fullpath) VALUES (?, ?, ?, ?, ?);');
 
     $q->execute(array($childName, removeArticles($childName), $parentId, $parentName, $childPath));
+    return $db->lastInsertId();
+}
+
+function dbAddTrackHistory($user_id, $track_id) {
+    $db = dbConnect();
+    $q=$db->prepare('INSERT INTO tblTrackHistory (user_id, track_id, timestamp) VALUES (?, ?, ?);');
+
+    $q->execute(array($user_id, $track_id, time()));
     return $db->lastInsertId();
 }
 
@@ -2569,19 +2610,12 @@ function dbGetFolderPath($id) {
     return $data;
 }
 
-function dbCheckUserPass($un, $pw) {
+function dbGetUsers() {
     $db = dbConnect();
-    $q=$db->prepare('SELECT * FROM tblUsers WHERE username=? AND md5pass=?');
-    $q->execute(array(
-          $un
-        , hash('md5', $pw)
-    ));
-    $data = $q->fetch(PDO::FETCH_COLUMN, 0);
-
-    if ($data) return true;
-    return false;
+    $q=$db->prepare('SELECT user_id, username, admin FROM tblUsers;');
+    $q->execute();
+    return $q->fetchAll();
 }
-
 
 
 
