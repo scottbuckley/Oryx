@@ -836,11 +836,9 @@ function htmlScript() { ?>
             }
 
             function getNextTrackId() {
-                var cur = $('.trackTR.playingTrack').first();
-                cur = cur.next('.trackTR');
-                if (cur) {
+                var cur = $('.trackTR.playingTrack').first().next('.trackTR');
+                if (cur)
                     return cur.attr('oryxid');
-                }
                 return 0;
             }
 
@@ -1840,6 +1838,7 @@ function invalidPage() {
 }
 
 function streamMP3($id) {
+    unlockSession();
     // get filename
     $fname = dbGetMP3filename($id);
 
@@ -1855,6 +1854,10 @@ function streamMP3($id) {
     }
 }
 
+function unlockSession() {
+    session_write_close();
+}
+
 
 
 ###
@@ -1866,6 +1869,7 @@ function streamMP3($id) {
 ### #    # #    #  ####  ######
 
 function streamCoverArt($id, $size) {
+    unlockSession();
 
     // the path of the thumbnail, which may or may not exist currently
     $thumbPath = "thumbs/id".$id."_size".$size.".jpg";
