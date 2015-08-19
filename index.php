@@ -927,39 +927,48 @@ function htmlScript() { ?>
 
             // what happens when you click on a track in the library pane.
             var firstTimeSelected = true;
-            function selectTrack(tid, pid) {
-
+            function selectTrack(tid, pid, title, duration) {
                 var dTrackTable = $('#playlistTable tbody');
 
+                // set up a new TR for this new track
                 var dNewTrackTR = $('<tr>', {
                       class   : 'trackTR'
                     , id      : 'track'+tid
                     , oryxid  : tid
                     , oryxpid : pid
-                    , html    : snippetTrackLoading
-                });
-
-                dTrackTable.append(dNewTrackTR);
-
-                // load the details for this track
-                dNewTrackTR.load('?/web/track_tr?id='+tid, function() {
-
-                    // enable the 'play' button for this track
-                    dNewTrackTR.find('.pliPlay').click(function() {
+                })
+                .append($('<td>', {
+                      class   : 'pliPlay'
+                    , html    : '&#xf04b;'
+                    , click   : function() {
+                        // enable the 'play' button for this track
                         dNewTrackTR.siblings().removeClass('playingTrack');
                         dNewTrackTR.addClass('playingTrack');
                         startTrack();
-                    });
-
-                    // enable the 'delete' button for this track
-                    dNewTrackTR.find('.pliDelete').click(function() {
+                    }
+                }))
+                .append($('<td>', {
+                      class   : 'pliName'
+                    , text    : title
+                }))
+                .append($('<td>', {
+                      class   : 'pliDuration'
+                    , text    : duration
+                }))
+                .append($('<td>', {
+                      class   : 'pliDelete'
+                    , html    : '&#xf00d;'
+                    , click   : function() {
+                        // enable the 'delete' button for this track
                         dNewTrackTR.remove();
                         checkMultipleDirsPlaying();
-                    });
+                    }
+                }))
 
-                    // add the color border thing for this track
-                    dNewTrackTR.css('border-color', hslToRgb(pidToHue(pid),0.4,0.8));
-                });
+                // add the color border thing for this track
+                dNewTrackTR.css('border-color', hslToRgb(pidToHue(pid),0.4,0.8));
+
+                dTrackTable.append(dNewTrackTR);
 
                 // make sure the new item is sortable
                 dTrackTable.sortable('reload');
@@ -1068,8 +1077,11 @@ function htmlScript() { ?>
 
                     // add click behaviour to tracks
                     $("tr.track").click(function() {
-                        var id = $(this).attr("oryxid");
-                        selectTrack(id, dirId);
+                        var id       = $(this).attr("oryxid");
+                        var title    = $(this).attr("data-title");
+                        var duration = $(this).attr("data-duration");
+                        //TODO: remove duplicate code, here and ten lines below.
+                        selectTrack(id, dirId, title, duration);
                     });
 
                     // add click behaviour to subdirectories
@@ -1081,7 +1093,9 @@ function htmlScript() { ?>
                     $("#titleButton button").click(function() {
                         $("tr.track").each(function() {
                             var id = $(this).attr("oryxid");
-                            selectTrack(id, dirId);
+                            var title    = $(this).attr("data-title");
+                            var duration = $(this).attr("data-duration");
+                            selectTrack(id, dirId, title, duration);
                         });
                     });
                     prepButtons("#titleButton button"); // button focus fix
@@ -1312,7 +1326,9 @@ function webDirectory() {
             $album    = §($file['album']);
             $duration = minSecs($file['duration']);
 
-            »("<tr class=`track` oryxid=`$id`>
+            »("<tr class=`track` oryxid=`$id` 
+                    data-title=`$title`
+                    data-duration=`$duration` >
                 <td>$track</td>
                 <td>$title</td>
                 <td>$artist</td>
